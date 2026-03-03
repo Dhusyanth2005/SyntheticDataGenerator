@@ -9,10 +9,11 @@ const prisma = new PrismaClient();
 
 app.use(express.json());
 
-// Routes
-const authRoutes = require('./routes/authRoutes');
+const authRoutes       = require('./routes/authRoutes');
+const generationRoutes = require('./routes/generationRoutes'); // ← your generation router
 
 app.use('/api/auth', authRoutes);
+app.use('/api/generation', generationRoutes);
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
