@@ -1,11 +1,56 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Sidebar from "../components/Sidebar";
 import Topbar from "../components/Topbar";
 
+// ─── CSS variable sets ─────────────────────────────────────────────────────────
+const DARK = `
+  --background:#0a0a0c;
+  --foreground:#f4f4f5;
+  --card:#111113;
+  --border:rgba(255,255,255,0.09);
+  --muted-foreground:#71717a;
+  --hover-bg:rgba(255,255,255,0.05);
+`;
+const LIGHT = `
+  --background:#ffffff;
+  --foreground:#09090b;
+  --card:#fafafa;
+  --border:rgba(0,0,0,0.1);
+  --muted-foreground:#71717a;
+  --hover-bg:rgba(0,0,0,0.04);
+`;
+
+function applyTheme(dark) {
+  document.documentElement.style.cssText = dark ? DARK : LIGHT;
+  document.documentElement.setAttribute("data-theme", dark ? "dark" : "light");
+  try {
+    localStorage.setItem("synth-theme", dark ? "dark" : "light");
+  } catch (_) {}
+}
+
+function getInitialDark() {
+  try {
+    const stored = localStorage.getItem("synth-theme");
+    if (stored) return stored === "dark";
+  } catch (_) {}
+  return window.matchMedia?.("(prefers-color-scheme: dark)").matches ?? true;
+}
+
 // ─── DashboardLayout ──────────────────────────────────────────────────────────
-// breadcrumbs & title are optional — Topbar auto-builds from useLocation() if omitted
 export default function DashboardLayout({ children, title, breadcrumbs }) {
-  const [isDark, setIsDark] = useState(true);
+  const [isDark, setIsDark] = useState(() => {
+    const dark = getInitialDark();
+    // Apply immediately — avoid flash
+    if (typeof document !== "undefined") applyTheme(dark);
+    return dark;
+  });
+
+  // Sync when state changes
+  useEffect(() => {
+    applyTheme(isDark);
+  }, [isDark]);
+
+  const toggleTheme = useCallback(() => setIsDark((v) => !v), []);
 
   return (
     <div
@@ -17,10 +62,8 @@ export default function DashboardLayout({ children, title, breadcrumbs }) {
         boxSizing: "border-box",
       }}
     >
-      {/* ── Sidebar ── */}
-      <Sidebar />
+      <Sidebar isDark={isDark} />
 
-      {/* ── Body (topbar + main) ── */}
       <div
         style={{
           flex: 1,
@@ -30,15 +73,13 @@ export default function DashboardLayout({ children, title, breadcrumbs }) {
           minWidth: 0,
         }}
       >
-        {/* ── Topbar — receives title & breadcrumbs from the page ── */}
         <Topbar
           title={title}
           breadcrumbs={breadcrumbs}
           isDark={isDark}
-          onToggleTheme={() => setIsDark((v) => !v)}
+          onToggleTheme={toggleTheme}
         />
 
-        {/* ── Scrollable page content ── */}
         <main
           style={{
             flex: 1,

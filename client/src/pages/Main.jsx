@@ -10,10 +10,6 @@ const STYLES = `
     from { opacity: 0; transform: translateY(6px); }
     to   { opacity: 1; transform: translateY(0);   }
   }
-  @keyframes shimmer {
-    0%   { background-position: -600px 0; }
-    100% { background-position:  600px 0; }
-  }
   @keyframes pulse-dot {
     0%, 100% { opacity: 1;   transform: scale(1);    }
     50%       { opacity: 0.4; transform: scale(0.75); }
@@ -21,9 +17,24 @@ const STYLES = `
   .dash-card { transition: border-color 0.15s, background-color 0.15s; }
   .dash-card:hover { border-color: rgba(255,255,255,0.2) !important; background-color: rgba(255,255,255,0.025) !important; }
   .dash-row-hover:hover { background-color: rgba(255,255,255,0.025) !important; }
-  .gen-btn:hover { opacity: 0.88; }
   .ghost-btn:hover { background: rgba(255,255,255,0.05) !important; }
 `;
+
+// ─── Color tokens — ONLY for icon badges + status badges ─────────────────────
+const C = {
+  blue: "#3b82f6",
+  blueDim: "rgba(59,130,246,0.12)",
+  blueBorder: "rgba(59,130,246,0.25)",
+  purple: "#a855f7",
+  purpleDim: "rgba(168,85,247,0.12)",
+  purpleBorder: "rgba(168,85,247,0.25)",
+  amber: "#f59e0b",
+  amberDim: "rgba(245,158,11,0.12)",
+  amberBorder: "rgba(245,158,11,0.25)",
+  green: "#22c55e",
+  greenDim: "rgba(34,197,94,0.12)",
+  greenBorder: "rgba(34,197,94,0.25)",
+};
 
 // ─── Icons ─────────────────────────────────────────────────────────────────────
 const DatabaseIcon = () => (
@@ -116,21 +127,6 @@ const CheckCircleIcon = () => (
   >
     <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
     <polyline points="22 4 12 14.01 9 11.01" />
-  </svg>
-);
-const ClockIcon = () => (
-  <svg
-    width="14"
-    height="14"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <circle cx="12" cy="12" r="10" />
-    <polyline points="12 6 12 12 16 14" />
   </svg>
 );
 const UploadIcon = () => (
@@ -284,17 +280,33 @@ const SYSTEM_SERVICES = [
   { label: "Express Backend", sub: "Node.js · JWT auth", ok: true },
 ];
 
-// Bar chart sparkline data (last 7 days synthetic rows)
 const SPARKLINE = [3200, 8100, 5400, 12000, 9800, 16200, 22400];
 const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
 // ─── Stat Card ─────────────────────────────────────────────────────────────────
-const StatCard = ({ icon, label, value, sub, delta, animDelay = 0 }) => {
+const STAT_THEMES = [
+  { accent: C.blue, accentDim: C.blueDim, accentBorder: C.blueBorder },
+  { accent: C.purple, accentDim: C.purpleDim, accentBorder: C.purpleBorder },
+  { accent: C.amber, accentDim: C.amberDim, accentBorder: C.amberBorder },
+  { accent: C.green, accentDim: C.greenDim, accentBorder: C.greenBorder },
+];
+
+const StatCard = ({
+  icon,
+  label,
+  value,
+  sub,
+  delta,
+  animDelay = 0,
+  themeIdx = 0,
+}) => {
   const [visible, setVisible] = useState(false);
   useEffect(() => {
     const t = setTimeout(() => setVisible(true), animDelay);
     return () => clearTimeout(t);
   }, [animDelay]);
+
+  const { accent, accentDim, accentBorder } = STAT_THEMES[themeIdx];
 
   return (
     <div
@@ -313,7 +325,6 @@ const StatCard = ({ icon, label, value, sub, delta, animDelay = 0 }) => {
         cursor: "default",
       }}
     >
-      {/* Top row */}
       <div
         style={{
           display: "flex",
@@ -332,24 +343,24 @@ const StatCard = ({ icon, label, value, sub, delta, animDelay = 0 }) => {
         >
           {label}
         </span>
+        {/* ← ONLY color here: icon badge */}
         <div
           style={{
             width: "30px",
             height: "30px",
             borderRadius: "7px",
-            border: "1px solid var(--border)",
-            backgroundColor: "rgba(255,255,255,0.03)",
+            border: `1px solid ${accentBorder}`,
+            backgroundColor: accentDim,
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            color: "var(--muted-foreground)",
+            color: accent,
           }}
         >
           {icon}
         </div>
       </div>
 
-      {/* Value */}
       <div>
         <div
           style={{
@@ -376,7 +387,6 @@ const StatCard = ({ icon, label, value, sub, delta, animDelay = 0 }) => {
         )}
       </div>
 
-      {/* Delta */}
       {delta && (
         <div
           style={{
@@ -399,7 +409,7 @@ const StatCard = ({ icon, label, value, sub, delta, animDelay = 0 }) => {
   );
 };
 
-// ─── Mini Sparkline Bar Chart ──────────────────────────────────────────────────
+// ─── Sparkline ─────────────────────────────────────────────────────────────────
 const SparklineChart = () => {
   const max = Math.max(...SPARKLINE);
   return (
@@ -412,7 +422,6 @@ const SparklineChart = () => {
       }}
     >
       {SPARKLINE.map((v, i) => {
-        const heightPct = (v / max) * 100;
         const isLast = i === SPARKLINE.length - 1;
         return (
           <div
@@ -438,13 +447,12 @@ const SparklineChart = () => {
                 title={`${DAYS[i]}: ${v.toLocaleString()} rows`}
                 style={{
                   width: "100%",
-                  height: `${heightPct}%`,
+                  height: `${(v / max) * 100}%`,
                   minHeight: "4px",
                   borderRadius: "3px 3px 0 0",
                   backgroundColor: isLast
                     ? "var(--foreground)"
                     : "rgba(255,255,255,0.18)",
-                  transition: "background-color 0.15s",
                   cursor: "default",
                 }}
               />
@@ -465,7 +473,7 @@ const SparklineChart = () => {
   );
 };
 
-// ─── Recent Jobs Table ─────────────────────────────────────────────────────────
+// ─── Status Badge — colored ────────────────────────────────────────────────────
 const StatusBadge = ({ status }) => {
   const done = status === "done";
   return (
@@ -476,37 +484,28 @@ const StatusBadge = ({ status }) => {
         gap: "5px",
         padding: "3px 9px",
         borderRadius: "99px",
-        border: "1px solid var(--border)",
+        border: `1px solid ${done ? C.greenBorder : C.amberBorder}`,
+        backgroundColor: done ? C.greenDim : C.amberDim,
         fontSize: "11px",
         fontWeight: 500,
-        color: done ? "var(--foreground)" : "var(--muted-foreground)",
+        color: done ? C.green : C.amber,
       }}
     >
-      {done ? (
-        <div
-          style={{
-            width: "6px",
-            height: "6px",
-            borderRadius: "50%",
-            backgroundColor: "var(--foreground)",
-          }}
-        />
-      ) : (
-        <div
-          style={{
-            width: "6px",
-            height: "6px",
-            borderRadius: "50%",
-            backgroundColor: "var(--muted-foreground)",
-            animation: "pulse-dot 1.2s ease-in-out infinite",
-          }}
-        />
-      )}
+      <div
+        style={{
+          width: "6px",
+          height: "6px",
+          borderRadius: "50%",
+          backgroundColor: done ? C.green : C.amber,
+          animation: done ? "none" : "pulse-dot 1.2s ease-in-out infinite",
+        }}
+      />
       {done ? "Complete" : "Processing"}
     </div>
   );
 };
 
+// ─── Recent Jobs ───────────────────────────────────────────────────────────────
 const RecentJobs = () => (
   <div
     style={{
@@ -516,7 +515,6 @@ const RecentJobs = () => (
       animation: "fadeSlideIn 0.35s ease-out 0.15s both",
     }}
   >
-    {/* Header */}
     <div
       style={{
         display: "flex",
@@ -568,8 +566,6 @@ const RecentJobs = () => (
         View all <ArrowRightIcon />
       </button>
     </div>
-
-    {/* Table */}
     <table style={{ width: "100%", borderCollapse: "collapse" }}>
       <thead>
         <tr>
@@ -604,7 +600,6 @@ const RecentJobs = () => (
               transition: "background-color 0.12s",
             }}
           >
-            {/* File */}
             <td style={{ padding: "12px 20px" }}>
               <div
                 style={{ display: "flex", alignItems: "center", gap: "9px" }}
@@ -640,7 +635,6 @@ const RecentJobs = () => (
                 </span>
               </div>
             </td>
-            {/* Rows */}
             <td style={{ padding: "12px 20px" }}>
               <span
                 style={{
@@ -652,7 +646,6 @@ const RecentJobs = () => (
                 {job.rows.toLocaleString()}
               </span>
             </td>
-            {/* Score */}
             <td style={{ padding: "12px 20px" }}>
               {job.score !== null ? (
                 <div
@@ -696,11 +689,10 @@ const RecentJobs = () => (
                 </span>
               )}
             </td>
-            {/* Status */}
+            {/* ← ONLY color here: status badge */}
             <td style={{ padding: "12px 20px" }}>
               <StatusBadge status={job.status} />
             </td>
-            {/* Time */}
             <td style={{ padding: "12px 20px" }}>
               <span
                 style={{ fontSize: "12px", color: "var(--muted-foreground)" }}
@@ -715,10 +707,10 @@ const RecentJobs = () => (
   </div>
 );
 
-// ─── Weekly Activity Chart Card ────────────────────────────────────────────────
+// ─── Activity Card ─────────────────────────────────────────────────────────────
 const ActivityCard = () => {
   const total = SPARKLINE.reduce((a, b) => a + b, 0);
-  const todayVal = SPARKLINE[SPARKLINE.length - 1];
+  const pct = Math.round((SPARKLINE[6] / SPARKLINE[0] - 1) * 100);
   return (
     <div
       className="dash-card"
@@ -788,7 +780,7 @@ const ActivityCard = () => {
           }}
         >
           <ArrowUpIcon />
-          {Math.round((todayVal / SPARKLINE[0] - 1) * 100)}%
+          {pct}%
         </div>
       </div>
       <SparklineChart />
@@ -796,7 +788,7 @@ const ActivityCard = () => {
   );
 };
 
-// ─── System Status Card ────────────────────────────────────────────────────────
+// ─── System Status ─────────────────────────────────────────────────────────────
 const SystemStatus = () => (
   <div
     className="dash-card"
@@ -852,12 +844,10 @@ const SystemStatus = () => (
         All systems operational
       </div>
     </div>
-
     <div
       style={{
         display: "flex",
         flexDirection: "column",
-        gap: "0",
         borderRadius: "9px",
         border: "1px solid var(--border)",
         overflow: "hidden",
@@ -906,17 +896,16 @@ const SystemStatus = () => (
                 width: "6px",
                 height: "6px",
                 borderRadius: "50%",
-                backgroundColor: s.ok
-                  ? "var(--foreground)"
-                  : "var(--muted-foreground)",
-                opacity: s.ok ? 1 : 0.4,
+                backgroundColor: "var(--foreground)",
+                opacity: s.ok ? 1 : 0.3,
               }}
             />
             <span
               style={{
                 fontSize: "11px",
-                color: s.ok ? "var(--foreground)" : "var(--muted-foreground)",
+                color: "var(--foreground)",
                 fontWeight: 500,
+                opacity: s.ok ? 1 : 0.4,
               }}
             >
               {s.ok ? "Online" : "Offline"}
@@ -928,25 +917,34 @@ const SystemStatus = () => (
   </div>
 );
 
-// ─── Quick Actions Card ────────────────────────────────────────────────────────
+// ─── Quick Actions ─────────────────────────────────────────────────────────────
 const QUICK_ACTIONS = [
   {
     icon: <SparkleIcon />,
     label: "New Generation",
     sub: "Upload CSV & generate",
     href: "/generate",
+    accent: C.purple,
+    accentDim: C.purpleDim,
+    accentBorder: C.purpleBorder,
   },
   {
     icon: <CloudIcon />,
     label: "View Storage",
     sub: "Browse Google Drive",
     href: "#",
+    accent: C.blue,
+    accentDim: C.blueDim,
+    accentBorder: C.blueBorder,
   },
   {
     icon: <CpuIcon />,
     label: "ML Service Logs",
     sub: "FastAPI microservice",
     href: "#",
+    accent: C.amber,
+    accentDim: C.amberDim,
+    accentBorder: C.amberBorder,
   },
 ];
 
@@ -977,73 +975,114 @@ const QuickActions = () => (
       Quick Actions
     </p>
     <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-      {QUICK_ACTIONS.map(({ icon, label, sub, href }) => (
-        <a
-          key={label}
-          href={href}
-          className="ghost-btn"
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "12px",
-            padding: "10px 12px",
-            borderRadius: "8px",
-            border: "1px solid var(--border)",
-            textDecoration: "none",
-            transition: "background 0.12s",
-            backgroundColor: "transparent",
-          }}
-        >
-          <div
+      {QUICK_ACTIONS.map(
+        ({ icon, label, sub, href, accent, accentDim, accentBorder }) => (
+          <a
+            key={label}
+            href={href}
+            className="ghost-btn"
             style={{
-              width: "32px",
-              height: "32px",
-              borderRadius: "7px",
-              flexShrink: 0,
-              backgroundColor: "var(--foreground)",
-              color: "var(--background)",
               display: "flex",
               alignItems: "center",
-              justifyContent: "center",
+              gap: "12px",
+              padding: "10px 12px",
+              borderRadius: "8px",
+              border: "1px solid var(--border)",
+              textDecoration: "none",
+              transition: "background 0.12s",
+              backgroundColor: "transparent",
             }}
           >
-            {icon}
-          </div>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <p
+            {/* ← ONLY color here: icon badge */}
+            <div
               style={{
-                fontSize: "13px",
-                fontWeight: 600,
-                color: "var(--foreground)",
-                margin: "0 0 1px 0",
+                width: "32px",
+                height: "32px",
+                borderRadius: "7px",
+                flexShrink: 0,
+                border: `1px solid ${accentBorder}`,
+                backgroundColor: accentDim,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: accent,
               }}
             >
-              {label}
-            </p>
-            <p
-              style={{
-                fontSize: "11px",
-                color: "var(--muted-foreground)",
-                margin: 0,
-              }}
-            >
-              {sub}
-            </p>
-          </div>
-          <ArrowRightIcon />
-        </a>
-      ))}
+              {icon}
+            </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <p
+                style={{
+                  fontSize: "13px",
+                  fontWeight: 600,
+                  color: "var(--foreground)",
+                  margin: "0 0 1px 0",
+                }}
+              >
+                {label}
+              </p>
+              <p
+                style={{
+                  fontSize: "11px",
+                  color: "var(--muted-foreground)",
+                  margin: 0,
+                }}
+              >
+                {sub}
+              </p>
+            </div>
+            <span style={{ color: "var(--muted-foreground)" }}>
+              <ArrowRightIcon />
+            </span>
+          </a>
+        ),
+      )}
     </div>
   </div>
 );
 
 // ─── Pipeline Overview ─────────────────────────────────────────────────────────
 const PIPELINE_STEPS = [
-  { icon: <UploadIcon />, label: "Upload", sub: "CSV dataset" },
-  { icon: <CpuIcon />, label: "Train", sub: "Random Forest" },
-  { icon: <SparkleIcon />, label: "Generate", sub: "Synthetic rows" },
-  { icon: <CheckCircleIcon />, label: "Validate", sub: "KS · variance · corr" },
-  { icon: <CloudIcon />, label: "Store", sub: "Google Drive" },
+  {
+    icon: <UploadIcon />,
+    label: "Upload",
+    sub: "CSV dataset",
+    accent: C.blue,
+    accentDim: C.blueDim,
+    accentBorder: C.blueBorder,
+  },
+  {
+    icon: <CpuIcon />,
+    label: "Train",
+    sub: "Random Forest",
+    accent: C.purple,
+    accentDim: C.purpleDim,
+    accentBorder: C.purpleBorder,
+  },
+  {
+    icon: <SparkleIcon />,
+    label: "Generate",
+    sub: "Synthetic rows",
+    accent: C.amber,
+    accentDim: C.amberDim,
+    accentBorder: C.amberBorder,
+  },
+  {
+    icon: <CheckCircleIcon />,
+    label: "Validate",
+    sub: "KS · variance · corr",
+    accent: C.green,
+    accentDim: C.greenDim,
+    accentBorder: C.greenBorder,
+  },
+  {
+    icon: <CloudIcon />,
+    label: "Store",
+    sub: "Google Drive",
+    accent: C.blue,
+    accentDim: C.blueDim,
+    accentBorder: C.blueBorder,
+  },
 ];
 
 const PipelineOverview = () => (
@@ -1090,18 +1129,19 @@ const PipelineOverview = () => (
               gap: "6px",
             }}
           >
+            {/* ← ONLY color here: icon badge */}
             <div
               style={{
                 width: "36px",
                 height: "36px",
                 borderRadius: "9px",
                 flexShrink: 0,
-                border: "1px solid var(--border)",
-                backgroundColor: "rgba(255,255,255,0.03)",
+                border: `1px solid ${step.accentBorder}`,
+                backgroundColor: step.accentDim,
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                color: "var(--muted-foreground)",
+                color: step.accent,
               }}
             >
               {step.icon}
@@ -1182,7 +1222,6 @@ export default function Main() {
             Overview of your synthetic data generation platform.
           </p>
         </div>
-        {/* Live indicator */}
         <div
           style={{
             display: "flex",
@@ -1230,6 +1269,7 @@ export default function Main() {
           sub="across all generations"
           delta="+12 this week"
           animDelay={0}
+          themeIdx={0}
         />
         <StatCard
           icon={<ZapIcon />}
@@ -1238,6 +1278,7 @@ export default function Main() {
           sub="synthetic data points"
           delta="+22,400 today"
           animDelay={60}
+          themeIdx={1}
         />
         <StatCard
           icon={<BarChartIcon />}
@@ -1246,6 +1287,7 @@ export default function Main() {
           sub="KS-test validated"
           delta="+1.2% this week"
           animDelay={120}
+          themeIdx={2}
         />
         <StatCard
           icon={<ShieldIcon />}
@@ -1253,13 +1295,14 @@ export default function Main() {
           value="100%"
           sub="no real data exposed"
           animDelay={180}
+          themeIdx={3}
         />
       </div>
 
-      {/* ── Pipeline overview (full width) ── */}
+      {/* ── Pipeline ── */}
       <PipelineOverview />
 
-      {/* ── Middle row: recent jobs (wide) + activity (narrow) ── */}
+      {/* ── Middle row ── */}
       <div
         style={{
           display: "grid",
@@ -1269,12 +1312,10 @@ export default function Main() {
         }}
       >
         <RecentJobs />
-        <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
-          <ActivityCard />
-        </div>
+        <ActivityCard />
       </div>
 
-      {/* ── Bottom row: quick actions + system status ── */}
+      {/* ── Bottom row ── */}
       <div
         style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px" }}
       >

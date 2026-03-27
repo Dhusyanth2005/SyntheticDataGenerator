@@ -1,62 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Spotlight } from "../components/ui/spotlight-new";
-
-// ─── SVG: Logo Icon ────────────────────────────────────────────────────────────
-const LogoIcon = (props) => (
-  <svg
-    width="1em"
-    height="1em"
-    viewBox="0 0 328 329"
-    fill="none"
-    xmlns="http://www.w3.org/2000/svg"
-    {...props}
-  >
-    <rect y="0.5" width="328" height="328" rx="164" fill="var(--foreground)" />
-    <path
-      d="M165.018 72.3008V132.771C165.018 152.653 148.9 168.771 129.018 168.771H70.2288"
-      stroke="var(--background)"
-      strokeWidth="20"
-    />
-    <path
-      d="M166.627 265.241L166.627 204.771C166.627 184.889 182.744 168.771 202.627 168.771L261.416 168.771"
-      stroke="var(--background)"
-      strokeWidth="20"
-    />
-    <line
-      x1="238.136"
-      y1="98.8184"
-      x2="196.76"
-      y2="139.707"
-      stroke="var(--background)"
-      strokeWidth="20"
-    />
-    <line
-      x1="135.688"
-      y1="200.957"
-      x2="94.3128"
-      y2="241.845"
-      stroke="var(--background)"
-      strokeWidth="20"
-    />
-    <line
-      x1="133.689"
-      y1="137.524"
-      x2="92.5566"
-      y2="96.3914"
-      stroke="var(--background)"
-      strokeWidth="20"
-    />
-    <line
-      x1="237.679"
-      y1="241.803"
-      x2="196.547"
-      y2="200.671"
-      stroke="var(--background)"
-      strokeWidth="20"
-    />
-  </svg>
-);
+import synthLogo from "../assets/SynthAI_Logo.png";
 
 // ─── Google Icon ───────────────────────────────────────────────────────────────
 const GoogleIcon = () => (
@@ -116,6 +61,27 @@ const EyeOffIcon = () => (
     <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
     <line x1="1" y1="1" x2="23" y2="23" />
   </svg>
+);
+
+// ─── Feature Badge ─────────────────────────────────────────────────────────────
+const FeatureBadge = ({ icon, text }) => (
+  <div
+    style={{
+      display: "flex",
+      alignItems: "center",
+      gap: "8px",
+      backgroundColor: "rgba(255,255,255,0.06)",
+      border: "1px solid rgba(255,255,255,0.1)",
+      borderRadius: "999px",
+      padding: "6px 14px",
+      fontSize: "13px",
+      color: "#d4d4d4",
+      whiteSpace: "nowrap",
+    }}
+  >
+    <span style={{ fontSize: "15px" }}>{icon}</span>
+    {text}
+  </div>
 );
 
 // ─── LoginForm ─────────────────────────────────────────────────────────────────
@@ -230,7 +196,7 @@ const LoginForm = () => {
           marginTop: "2px",
         }}
       >
-        Sign In to Shadcn Studio
+        Sign In to Synth AI
       </button>
     </form>
   );
@@ -278,6 +244,7 @@ const Login = () => {
             textAlign: "center",
           }}
         >
+          {/* ── Logo + Name ── */}
           <div
             style={{
               display: "flex",
@@ -287,16 +254,22 @@ const Login = () => {
               marginBottom: "40px",
             }}
           >
-            <LogoIcon style={{ width: "40px", height: "40px" }} />
+            <img
+              src={synthLogo}
+              alt="Synth AI logo"
+              style={{ width: "40px", height: "40px", objectFit: "contain" }}
+            />
             <span
               style={{ fontSize: "20px", fontWeight: 600, color: "#fafafa" }}
             >
-              shadcn/studio
+              Synth AI
             </span>
           </div>
+
+          {/* ── Headline ── */}
           <h1
             style={{
-              fontSize: "clamp(36px, 5vw, 64px)",
+              fontSize: "clamp(32px, 4.5vw, 58px)",
               fontWeight: 700,
               lineHeight: 1.1,
               margin: "0 0 20px 0",
@@ -310,21 +283,38 @@ const Login = () => {
             <br />
             back to
             <br />
-            the studio.
+            Synth AI.
           </h1>
+
+          {/* ── Subtext ── */}
           <p
             style={{
-              fontSize: "16px",
+              fontSize: "15px",
               color: "#a3a3a3",
-              lineHeight: 1.6,
-              margin: 0,
-              maxWidth: "380px",
+              lineHeight: 1.7,
+              margin: "0 0 32px 0",
+              maxWidth: "400px",
               marginInline: "auto",
             }}
           >
-            Sign in to continue building. Your projects, components, and
-            settings are waiting.
+            Your synthetic datasets, generation history, and statistical reports
+            are ready. Sign in to continue your work.
           </p>
+
+          {/* ── Feature Badges ── */}
+          <div
+            style={{
+              display: "flex",
+              flexWrap: "wrap",
+              gap: "10px",
+              justifyContent: "center",
+            }}
+          >
+            <FeatureBadge icon="🔒" text="Privacy Safe" />
+            <FeatureBadge icon="📊" text="Stat Validated" />
+            <FeatureBadge icon="⚡" text="5,000+ Rows" />
+            <FeatureBadge icon="☁️" text="Cloud Storage" />
+          </div>
         </div>
       </div>
 
@@ -343,17 +333,32 @@ const Login = () => {
       >
         <div style={{ width: "100%", maxWidth: "400px" }}>
           <div style={{ marginBottom: "28px" }}>
-            <h2
+            {/* ── Right panel heading with logo ── */}
+            <div
               style={{
-                fontSize: "24px",
-                fontWeight: 700,
-                color: "var(--foreground)",
-                margin: "0 0 6px 0",
-                lineHeight: "1.2",
+                display: "flex",
+                alignItems: "center",
+                gap: "10px",
+                marginBottom: "6px",
               }}
             >
-              Sign In to Shadcn Studio
-            </h2>
+              <img
+                src={synthLogo}
+                alt="Synth AI logo"
+                style={{ width: "32px", height: "32px", objectFit: "contain" }}
+              />
+              <h2
+                style={{
+                  fontSize: "24px",
+                  fontWeight: 700,
+                  color: "var(--foreground)",
+                  margin: 0,
+                  lineHeight: "1.2",
+                }}
+              >
+                Sign In to Synth AI
+              </h2>
+            </div>
             <p
               style={{
                 fontSize: "14px",
@@ -361,7 +366,7 @@ const Login = () => {
                 margin: 0,
               }}
             >
-              Ship Faster and Focus on Growth.
+              Access your synthetic datasets and generation history.
             </p>
           </div>
 

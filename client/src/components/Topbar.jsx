@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 
-// ─── Styles ───────────────────────────────────────────────────────────────────
+// ─── Styles ────────────────────────────────────────────────────────────────────
 const TOPBAR_STYLES = `
   .tb-icon-btn {
     position: relative;
@@ -19,11 +19,12 @@ const TOPBAR_STYLES = `
     flex-shrink: 0;
   }
   .tb-icon-btn:hover {
-    background: rgba(255,255,255,0.06);
+    background: var(--hover-bg);
     border-color: var(--border);
   }
   .tb-crumb-link {
     transition: color 0.12s;
+    cursor: pointer;
   }
   .tb-crumb-link:hover {
     color: var(--foreground) !important;
@@ -38,9 +39,10 @@ const TOPBAR_STYLES = `
     border-radius: 8px;
     cursor: pointer;
     transition: background-color 0.12s, border-color 0.12s;
+    color: var(--foreground);
   }
   .tb-user-btn:hover {
-    background: rgba(255,255,255,0.06);
+    background: var(--hover-bg);
     border-color: var(--border);
   }
   .tb-drop-item {
@@ -54,12 +56,13 @@ const TOPBAR_STYLES = `
     font-weight: 400;
     transition: background-color 0.1s;
     user-select: none;
+    color: var(--foreground);
   }
   .tb-drop-item:hover {
-    background: rgba(255,255,255,0.06);
+    background: var(--hover-bg);
   }
   .tb-search-input {
-    padding: 5px 10px 5px 30px;
+    padding: 5px 48px 5px 30px;
     font-size: 13px;
     width: 176px;
     border: 1px solid var(--border);
@@ -76,6 +79,10 @@ const TOPBAR_STYLES = `
   }
   .tb-search-input::placeholder {
     color: var(--muted-foreground);
+  }
+  @keyframes tbDropIn {
+    from { opacity: 0; transform: translateY(-4px) scale(0.98); }
+    to   { opacity: 1; transform: translateY(0)    scale(1);    }
   }
 `;
 
@@ -260,6 +267,7 @@ const SearchBar = () => {
           color: "var(--muted-foreground)",
           lineHeight: 0,
           pointerEvents: "none",
+          zIndex: 1,
         }}
       >
         <SearchIcon />
@@ -271,7 +279,6 @@ const SearchBar = () => {
         onFocus={() => setFocused(true)}
         onBlur={() => setFocused(false)}
       />
-      {/* ⌘K badge — only when unfocused */}
       {!focused && (
         <div
           style={{
@@ -279,7 +286,6 @@ const SearchBar = () => {
             right: "8px",
             display: "flex",
             alignItems: "center",
-            gap: "2px",
             pointerEvents: "none",
           }}
         >
@@ -287,10 +293,10 @@ const SearchBar = () => {
             style={{
               fontSize: "10px",
               color: "var(--muted-foreground)",
-              backgroundColor: "rgba(255,255,255,0.04)",
+              backgroundColor: "var(--background)",
               border: "1px solid var(--border)",
               borderRadius: "4px",
-              padding: "1px 4px",
+              padding: "1px 5px",
               lineHeight: "1.6",
               fontFamily: "inherit",
             }}
@@ -303,7 +309,7 @@ const SearchBar = () => {
   );
 };
 
-// ─── Notification badge icon ───────────────────────────────────────────────────
+// ─── Notification Button ───────────────────────────────────────────────────────
 const NotifButton = () => (
   <button
     className="tb-icon-btn"
@@ -311,7 +317,6 @@ const NotifButton = () => (
     style={{ position: "relative" }}
   >
     <BellIcon />
-    {/* red dot */}
     <span
       style={{
         position: "absolute",
@@ -363,10 +368,9 @@ const UserDropdown = ({ navigate }) => {
             fontSize: "10px",
             fontWeight: 700,
             flexShrink: 0,
-            letterSpacing: "-0.02em",
           }}
         >
-          SS
+          SA
         </div>
         <span
           style={{
@@ -376,7 +380,7 @@ const UserDropdown = ({ navigate }) => {
             whiteSpace: "nowrap",
           }}
         >
-          shadcn/studio
+          Synth AI
         </span>
         <span style={{ color: "var(--muted-foreground)", lineHeight: 0 }}>
           <ChevronDownIcon />
@@ -389,23 +393,21 @@ const UserDropdown = ({ navigate }) => {
             position: "absolute",
             top: "calc(100% + 6px)",
             right: 0,
-            minWidth: "188px",
+            minWidth: "192px",
             backgroundColor: "var(--card)",
             border: "1px solid var(--border)",
             borderRadius: "10px",
             overflow: "hidden",
             boxShadow:
-              "0 8px 32px rgba(0,0,0,0.28), 0 0 0 1px rgba(255,255,255,0.04) inset",
+              "0 8px 32px rgba(0,0,0,0.18), 0 0 0 1px rgba(128,128,128,0.06) inset",
             zIndex: 100,
             animation: "tbDropIn 0.14s ease-out",
           }}
         >
-          <style>{`@keyframes tbDropIn { from { opacity:0; transform:translateY(-4px) } to { opacity:1; transform:translateY(0) } }`}</style>
-
           {/* User info header */}
           <div
             style={{
-              padding: "10px 12px 10px 12px",
+              padding: "10px 12px",
               borderBottom: "1px solid var(--border)",
             }}
           >
@@ -425,7 +427,7 @@ const UserDropdown = ({ navigate }) => {
                   flexShrink: 0,
                 }}
               >
-                SS
+                SA
               </div>
               <div>
                 <p
@@ -436,7 +438,7 @@ const UserDropdown = ({ navigate }) => {
                     margin: "0 0 1px 0",
                   }}
                 >
-                  shadcn/studio
+                  Synth AI
                 </p>
                 <p
                   style={{
@@ -445,7 +447,7 @@ const UserDropdown = ({ navigate }) => {
                     margin: 0,
                   }}
                 >
-                  hello@shadcnstudio.com
+                  hello@synthai.com
                 </p>
               </div>
             </div>
@@ -453,9 +455,9 @@ const UserDropdown = ({ navigate }) => {
 
           {/* Menu items */}
           <div style={{ padding: "6px" }}>
-            {items.map((item, i) => (
+            {items.map((item) => (
               <div key={item.label}>
-                {item.danger && i > 0 && (
+                {item.danger && (
                   <div
                     style={{
                       height: "1px",
@@ -475,7 +477,6 @@ const UserDropdown = ({ navigate }) => {
                   onKeyDown={(e) =>
                     e.key === "Enter" && (setOpen(false), navigate(item.path))
                   }
-                  style={{ color: "var(--foreground)" }}
                 >
                   <span
                     style={{ lineHeight: 0, color: "var(--muted-foreground)" }}
@@ -493,7 +494,7 @@ const UserDropdown = ({ navigate }) => {
   );
 };
 
-// ─── Divider ──────────────────────────────────────────────────────────────────
+// ─── Vertical divider ─────────────────────────────────────────────────────────
 const VDivider = () => (
   <div
     style={{
@@ -507,12 +508,12 @@ const VDivider = () => (
 );
 
 // ─── Topbar ────────────────────────────────────────────────────────────────────
-const Topbar = ({
+export default function Topbar({
   isDark,
   onToggleTheme,
   title,
   breadcrumbs: breadcrumbsProp,
-}) => {
+}) {
   const location = useLocation();
   const navigate = useNavigate();
   const breadcrumbs = breadcrumbsProp ?? buildBreadcrumbs(location.pathname);
@@ -520,7 +521,7 @@ const Topbar = ({
   return (
     <header
       style={{
-        height: "52px",
+        height: "60px" /* ← matches sidebar header height exactly */,
         boxSizing: "border-box",
         display: "flex",
         alignItems: "center",
@@ -563,10 +564,10 @@ const Topbar = ({
               {i > 0 && (
                 <span
                   style={{
-                    color: "var(--border)",
+                    color: "var(--muted-foreground)",
                     lineHeight: 0,
                     flexShrink: 0,
-                    opacity: 0.7,
+                    opacity: 0.5,
                   }}
                 >
                   <SlashIcon />
@@ -610,9 +611,7 @@ const Topbar = ({
           flexShrink: 0,
         }}
       >
-        {/* Search */}
         <SearchBar />
-
         <VDivider />
 
         {/* GitHub */}
@@ -633,12 +632,8 @@ const Topbar = ({
         <NotifButton />
 
         <VDivider />
-
-        {/* User menu */}
         <UserDropdown navigate={navigate} />
       </div>
     </header>
   );
-};
-
-export default Topbar;
+}

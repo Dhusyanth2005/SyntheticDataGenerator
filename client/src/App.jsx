@@ -9,6 +9,8 @@ import Main from "./pages/Main";
 import Generate from "./pages/Generate";
 import History from "./pages/History";
 import Settings from "./pages/Settings";
+import Hero from "./components/Hero";
+import Home from "./pages/Home/Home";
 
 const globalStyles = `
   *, *::before, *::after {
@@ -28,11 +30,11 @@ export default function App() {
   return (
     <>
       <style>{globalStyles}</style>
-      <ThemeProvider defaultTheme="light" storageKey="vite-ui-theme">
+      <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
         <BrowserRouter>
           <Routes>
             {/* Auth */}
-            <Route path="/" element={<Navigate to="/login" replace />} />
+            <Route path="/" element={<Home/>} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
 

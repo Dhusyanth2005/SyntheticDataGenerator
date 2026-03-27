@@ -98,6 +98,17 @@ const RefreshIcon = icon(
   ],
   13,
 );
+const TrashIcon = icon(
+  [
+    <polyline key="a" points="3 6 5 6 21 6" />,
+    <path key="b" d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />,
+    <path key="c" d="M10 11v6" />,
+    <path key="d" d="M14 11v6" />,
+    <path key="e" d="M9 6V4h6v2" />,
+  ],
+  13,
+);
+
 const UploadCloudIcon = () => (
   <svg
     width="36"
@@ -206,6 +217,115 @@ const IconBox = ({ size = 32, radius = 7, children }) => (
     }}
   >
     {children}
+  </div>
+);
+
+// ─── Confirm Delete Modal ─────────────────────────────────────────────────────
+const DeleteModal = ({ dataset, onConfirm, onCancel }) => (
+  <div
+    style={{
+      position: "fixed",
+      inset: 0,
+      zIndex: 999,
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: "rgba(0,0,0,0.6)",
+      backdropFilter: "blur(4px)",
+    }}
+  >
+    <div
+      onClick={(e) => e.stopPropagation()}
+      style={{
+        width: "360px",
+        backgroundColor: "var(--card)",
+        border: "1px solid var(--border)",
+        borderRadius: "14px",
+        padding: "24px",
+        display: "flex",
+        flexDirection: "column",
+        gap: "20px",
+        animation: "fadeSlideIn 0.18s ease-out",
+      }}
+    >
+      {/* icon badge — red, consistent with color rule */}
+      <div
+        style={{
+          width: "40px",
+          height: "40px",
+          borderRadius: "10px",
+          border: "1px solid rgba(239,68,68,0.25)",
+          backgroundColor: "rgba(239,68,68,0.12)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          color: "#ef4444",
+        }}
+      >
+        <TrashIcon />
+      </div>
+      <div>
+        <p
+          style={{
+            fontSize: "15px",
+            fontWeight: 700,
+            color: "var(--foreground)",
+            margin: "0 0 6px 0",
+          }}
+        >
+          Delete dataset?
+        </p>
+        <p
+          style={{
+            fontSize: "13px",
+            color: "var(--muted-foreground)",
+            margin: 0,
+            lineHeight: 1.5,
+          }}
+        >
+          <span style={{ color: "var(--foreground)", fontWeight: 500 }}>
+            {dataset.fileName}
+          </span>{" "}
+          will be permanently removed. This cannot be undone.
+        </p>
+      </div>
+      <div style={{ display: "flex", gap: "8px" }}>
+        <button
+          onClick={onCancel}
+          className="ghost-btn"
+          style={{
+            flex: 1,
+            padding: "9px",
+            backgroundColor: "transparent",
+            color: "var(--muted-foreground)",
+            border: "1px solid var(--border)",
+            borderRadius: "8px",
+            fontSize: "13px",
+            fontWeight: 500,
+            cursor: "pointer",
+            transition: "background 0.12s",
+          }}
+        >
+          Cancel
+        </button>
+        <button
+          onClick={onConfirm}
+          style={{
+            flex: 1,
+            padding: "9px",
+            backgroundColor: "#ef4444",
+            color: "#fff",
+            border: "1px solid #ef4444",
+            borderRadius: "8px",
+            fontSize: "13px",
+            fontWeight: 600,
+            cursor: "pointer",
+          }}
+        >
+          Delete
+        </button>
+      </div>
+    </div>
   </div>
 );
 
@@ -524,7 +644,6 @@ const StepConfigure = ({
 }) => {
   const [custom, setCustom] = useState(false);
   const [inputVal, setInputVal] = useState(String(rows));
-
   const defaultNameSuggestion = file
     ? `synthetic_${file.name.replace(/\.csv$/i, "")}_${rows}`
     : "synthetic_dataset";
@@ -585,7 +704,6 @@ const StepConfigure = ({
 
       <Divider />
 
-      {/* ── Output filename ──────────────────────────────────────── */}
       <div>
         <p
           style={{
@@ -711,7 +829,6 @@ const StepConfigure = ({
             );
           })}
         </div>
-
         {!custom ? (
           <button
             className="ghost-btn"
@@ -963,7 +1080,6 @@ const StepProcessing = ({ rows, onDone }) => {
           </div>
         ))}
       </div>
-
       <div
         style={{
           height: 4,
@@ -994,7 +1110,6 @@ const StepProcessing = ({ rows, onDone }) => {
           }}
         />
       </div>
-
       <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
         {STAGES.map((s, i) => {
           const done = i < stageIdx,
@@ -1109,7 +1224,6 @@ const StepResults = ({ file, rows, outputName, score: scoreProp }) => {
     () => scoreProp ?? (88 + Math.random() * 9).toFixed(1),
   );
   const [visible, setVisible] = useState(false);
-
   useEffect(() => {
     const t = setTimeout(() => setVisible(true), 80);
     return () => clearTimeout(t);
@@ -1118,7 +1232,6 @@ const StepResults = ({ file, rows, outputName, score: scoreProp }) => {
   const finalFileName =
     outputName ||
     `synthetic_${file?.name?.replace(/\.csv$/i, "") || "dataset"}_${rows}`;
-
   const metrics = [
     { label: "KS Statistic", value: (0.03 + Math.random() * 0.04).toFixed(3) },
     {
@@ -1134,7 +1247,6 @@ const StepResults = ({ file, rows, outputName, score: scoreProp }) => {
       value: `${(96 + Math.random() * 3).toFixed(1)}%`,
     },
   ];
-
   const details = [
     { label: "Original file", value: file?.name ?? "dataset.csv" },
     { label: "Output filename", value: `${finalFileName}.csv` },
@@ -1365,13 +1477,6 @@ const Modal = ({ onClose, onComplete, seed }) => {
   const [outputName, setOutputName] = useState(seed?.outputName || "");
   const [resultScore, setResultScore] = useState(null);
 
-  const handleGenerate = () => setStep(2);
-
-  const handleDone = (score) => {
-    setResultScore(score);
-    setStep(3);
-  };
-
   const finalFileName =
     outputName.trim() ||
     (file
@@ -1410,7 +1515,6 @@ const Modal = ({ onClose, onComplete, seed }) => {
           overflow: "hidden",
         }}
       >
-        {/* Header */}
         <div
           style={{
             display: "flex",
@@ -1459,7 +1563,6 @@ const Modal = ({ onClose, onComplete, seed }) => {
           )}
         </div>
 
-        {/* Body */}
         <div
           style={{
             flex: 1,
@@ -1477,7 +1580,6 @@ const Modal = ({ onClose, onComplete, seed }) => {
           }}
         >
           <StepIndicator current={step} />
-
           {step === 0 && (
             <StepUpload
               file={file}
@@ -1485,7 +1587,6 @@ const Modal = ({ onClose, onComplete, seed }) => {
               onNext={() => setStep(1)}
             />
           )}
-
           {step === 1 && (
             <StepConfigure
               file={file}
@@ -1494,12 +1595,18 @@ const Modal = ({ onClose, onComplete, seed }) => {
               outputName={outputName}
               setOutputName={setOutputName}
               onBack={() => setStep(0)}
-              onGenerate={handleGenerate}
+              onGenerate={() => setStep(2)}
             />
           )}
-
-          {step === 2 && <StepProcessing rows={rows} onDone={handleDone} />}
-
+          {step === 2 && (
+            <StepProcessing
+              rows={rows}
+              onDone={(score) => {
+                setResultScore(score);
+                setStep(3);
+              }}
+            />
+          )}
           {step === 3 && (
             <StepResults
               file={file}
@@ -1510,7 +1617,6 @@ const Modal = ({ onClose, onComplete, seed }) => {
           )}
         </div>
 
-        {/* Footer (results only) */}
         {step === 3 && (
           <div
             style={{
@@ -1660,7 +1766,6 @@ const CSVViewer = ({ dataset, onClose }) => {
             </button>
           </div>
         </div>
-
         <div
           style={{
             flex: 1,
@@ -1779,7 +1884,6 @@ const CSVViewer = ({ dataset, onClose }) => {
             </div>
           )}
         </div>
-
         <div
           style={{
             display: "flex",
@@ -1812,7 +1916,7 @@ const CSVViewer = ({ dataset, onClose }) => {
 };
 
 // ─── Dataset Row ──────────────────────────────────────────────────────────────
-const DatasetRow = ({ dataset, index, onView, onRegenerate }) => {
+const DatasetRow = ({ dataset, index, onView, onRegenerate, onDelete }) => {
   const [hovered, setHovered] = useState(false);
   return (
     <tr
@@ -1918,6 +2022,7 @@ const DatasetRow = ({ dataset, index, onView, onRegenerate }) => {
           {dataset.createdAt}
         </span>
       </td>
+      {/* ── Actions (visible on hover) ── */}
       <td style={{ padding: "13px 16px" }}>
         <div
           style={{
@@ -1970,6 +2075,28 @@ const DatasetRow = ({ dataset, index, onView, onRegenerate }) => {
           >
             <RefreshIcon /> Generate Again
           </button>
+          {/* ← Delete button */}
+          <button
+            onClick={() => onDelete(dataset)}
+            className="ghost-btn"
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 5,
+              padding: "5px 10px",
+              borderRadius: 6,
+              background: "transparent",
+              border: "1px solid var(--border)",
+              fontSize: 12,
+              fontWeight: 500,
+              color: "var(--muted-foreground)",
+              cursor: "pointer",
+              transition: "background 0.12s",
+              whiteSpace: "nowrap",
+            }}
+          >
+            <TrashIcon /> Delete
+          </button>
         </div>
       </td>
     </tr>
@@ -2005,6 +2132,7 @@ export default function Generate() {
   const [viewerDataset, setViewerDataset] = useState(null);
   const [datasets, setDatasets] = useState([]);
   const [regenSeed, setRegenSeed] = useState(null);
+  const [deleteTarget, setDeleteTarget] = useState(null); // dataset to delete
 
   const handleComplete = useCallback(
     ({ fileName, originalFile, rows, score }) => {
@@ -2037,6 +2165,11 @@ export default function Generate() {
     setModalOpen(true);
   }, []);
 
+  const handleDelete = () => {
+    setDatasets((prev) => prev.filter((d) => d.id !== deleteTarget.id));
+    setDeleteTarget(null);
+  };
+
   const openNew = () => {
     setRegenSeed(null);
     setModalOpen(true);
@@ -2046,6 +2179,7 @@ export default function Generate() {
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
       <style>{STYLES}</style>
 
+      {/* Header */}
       <div
         style={{
           display: "flex",
@@ -2088,6 +2222,7 @@ export default function Generate() {
         </Btn>
       </div>
 
+      {/* Empty state */}
       {datasets.length === 0 && (
         <div
           style={{
@@ -2181,6 +2316,7 @@ export default function Generate() {
         </div>
       )}
 
+      {/* Dataset table */}
       {datasets.length > 0 && (
         <div
           style={{
@@ -2267,6 +2403,7 @@ export default function Generate() {
                     index={i}
                     onView={setViewerDataset}
                     onRegenerate={handleRegenerate}
+                    onDelete={setDeleteTarget}
                   />
                 ))}
               </tbody>
@@ -2275,6 +2412,7 @@ export default function Generate() {
         </div>
       )}
 
+      {/* Modals */}
       {modalOpen && (
         <Modal
           onClose={() => {
@@ -2285,11 +2423,19 @@ export default function Generate() {
           seed={regenSeed}
         />
       )}
-
       {viewerDataset && (
         <CSVViewer
           dataset={viewerDataset}
           onClose={() => setViewerDataset(null)}
+        />
+      )}
+
+      {/* Delete confirmation modal */}
+      {deleteTarget && (
+        <DeleteModal
+          dataset={deleteTarget}
+          onConfirm={handleDelete}
+          onCancel={() => setDeleteTarget(null)}
         />
       )}
     </div>

@@ -1,5 +1,127 @@
 import { useState, useMemo } from "react";
 
+// ─── Confirm Delete Modal ──────────────────────────────────────────────────────
+const DeleteModal = ({ job, onConfirm, onCancel }) => (
+  <div
+    style={{
+      position: "fixed",
+      inset: 0,
+      zIndex: 999,
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: "rgba(0,0,0,0.55)",
+      backdropFilter: "blur(4px)",
+    }}
+  >
+    <div
+      style={{
+        width: "360px",
+        backgroundColor: "var(--card)",
+        border: "1px solid var(--border)",
+        borderRadius: "14px",
+        padding: "24px",
+        display: "flex",
+        flexDirection: "column",
+        gap: "20px",
+      }}
+    >
+      <div
+        style={{
+          width: "40px",
+          height: "40px",
+          borderRadius: "10px",
+          border: "1px solid rgba(239,68,68,0.25)",
+          backgroundColor: "rgba(239,68,68,0.12)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          color: "#ef4444",
+        }}
+      >
+        <svg
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <polyline points="3 6 5 6 21 6" />
+          <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+          <path d="M10 11v6" />
+          <path d="M14 11v6" />
+          <path d="M9 6V4h6v2" />
+        </svg>
+      </div>
+      <div>
+        <p
+          style={{
+            fontSize: "15px",
+            fontWeight: 700,
+            color: "var(--foreground)",
+            margin: "0 0 6px 0",
+          }}
+        >
+          Delete record?
+        </p>
+        <p
+          style={{
+            fontSize: "13px",
+            color: "var(--muted-foreground)",
+            margin: 0,
+            lineHeight: 1.5,
+          }}
+        >
+          <span style={{ color: "var(--foreground)", fontWeight: 500 }}>
+            {job.file}
+          </span>{" "}
+          and its generation record will be permanently removed. This cannot be
+          undone.
+        </p>
+      </div>
+      <div style={{ display: "flex", gap: "8px" }}>
+        <button
+          onClick={onCancel}
+          className="ghost-btn"
+          style={{
+            flex: 1,
+            padding: "9px",
+            backgroundColor: "transparent",
+            color: "var(--muted-foreground)",
+            border: "1px solid var(--border)",
+            borderRadius: "8px",
+            fontSize: "13px",
+            fontWeight: 500,
+            cursor: "pointer",
+            transition: "background 0.12s",
+          }}
+        >
+          Cancel
+        </button>
+        <button
+          onClick={onConfirm}
+          style={{
+            flex: 1,
+            padding: "9px",
+            backgroundColor: "#ef4444",
+            color: "#fff",
+            border: "1px solid #ef4444",
+            borderRadius: "8px",
+            fontSize: "13px",
+            fontWeight: 600,
+            cursor: "pointer",
+          }}
+        >
+          Delete
+        </button>
+      </div>
+    </div>
+  </div>
+);
+
 // ─── Styles ────────────────────────────────────────────────────────────────────
 const STYLES = `
   @keyframes fadeSlideIn {
@@ -26,6 +148,25 @@ const STYLES = `
   .filter-chip:hover { border-color: var(--foreground) !important; color: var(--foreground) !important; }
   .close-btn:hover { background: rgba(255,255,255,0.07) !important; }
 `;
+
+// ─── Color tokens — ONLY icon badges + status badges ──────────────────────────
+const C = {
+  blue: "#3b82f6",
+  blueDim: "rgba(59,130,246,0.12)",
+  blueBorder: "rgba(59,130,246,0.25)",
+  purple: "#a855f7",
+  purpleDim: "rgba(168,85,247,0.12)",
+  purpleBorder: "rgba(168,85,247,0.25)",
+  amber: "#f59e0b",
+  amberDim: "rgba(245,158,11,0.12)",
+  amberBorder: "rgba(245,158,11,0.25)",
+  green: "#22c55e",
+  greenDim: "rgba(34,197,94,0.12)",
+  greenBorder: "rgba(34,197,94,0.25)",
+  red: "#ef4444",
+  redDim: "rgba(239,68,68,0.12)",
+  redBorder: "rgba(239,68,68,0.25)",
+};
 
 // ─── Icons ─────────────────────────────────────────────────────────────────────
 const SearchIcon = () => (
@@ -152,20 +293,6 @@ const ChevronDownIcon = () => (
     <polyline points="6 9 12 15 18 9" />
   </svg>
 );
-const FilterIcon = () => (
-  <svg
-    width="13"
-    height="13"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
-  </svg>
-);
 const DatabaseIcon = () => (
   <svg
     width="15"
@@ -225,21 +352,6 @@ const ClockIcon = () => (
   >
     <circle cx="12" cy="12" r="10" />
     <polyline points="12 6 12 12 16 14" />
-  </svg>
-);
-const ArrowUpIcon = () => (
-  <svg
-    width="10"
-    height="10"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2.5"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <line x1="12" y1="19" x2="12" y2="5" />
-    <polyline points="5 12 12 5 19 12" />
   </svg>
 );
 const CloudIcon = () => (
@@ -528,7 +640,15 @@ const ALL_JOBS = [
 
 const FILTER_OPTIONS = ["All", "Complete", "Failed"];
 
-// ─── Summary stat cards ────────────────────────────────────────────────────────
+// Summary card themes — color only on the icon badge
+const CARD_THEMES = [
+  { accent: C.blue, accentDim: C.blueDim, accentBorder: C.blueBorder },
+  { accent: C.purple, accentDim: C.purpleDim, accentBorder: C.purpleBorder },
+  { accent: C.amber, accentDim: C.amberDim, accentBorder: C.amberBorder },
+  { accent: C.green, accentDim: C.greenDim, accentBorder: C.greenBorder },
+];
+
+// ─── Summary Cards ─────────────────────────────────────────────────────────────
 const SummaryCards = ({ jobs }) => {
   const complete = jobs.filter((j) => j.status === "complete");
   const totalRows = complete.reduce((a, b) => a + b.rows, 0);
@@ -574,84 +694,88 @@ const SummaryCards = ({ jobs }) => {
         gap: "12px",
       }}
     >
-      {cards.map((c, i) => (
-        <div
-          key={c.label}
-          style={{
-            padding: "18px 20px",
-            borderRadius: "11px",
-            border: "1px solid var(--border)",
-            backgroundColor: "rgba(255,255,255,0.01)",
-            display: "flex",
-            flexDirection: "column",
-            gap: "10px",
-            animation: `fadeSlideIn 0.3s ease-out ${i * 50}ms both`,
-          }}
-        >
+      {cards.map((c, i) => {
+        const { accent, accentDim, accentBorder } = CARD_THEMES[i];
+        return (
           <div
+            key={c.label}
             style={{
+              padding: "18px 20px",
+              borderRadius: "11px",
+              border: "1px solid var(--border)",
+              backgroundColor: "rgba(255,255,255,0.01)",
               display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
+              flexDirection: "column",
+              gap: "10px",
+              animation: `fadeSlideIn 0.3s ease-out ${i * 50}ms both`,
             }}
           >
-            <span
-              style={{
-                fontSize: "10px",
-                fontWeight: 600,
-                textTransform: "uppercase",
-                letterSpacing: "0.08em",
-                color: "var(--muted-foreground)",
-              }}
-            >
-              {c.label}
-            </span>
             <div
               style={{
-                width: "28px",
-                height: "28px",
-                borderRadius: "6px",
-                border: "1px solid var(--border)",
-                backgroundColor: "rgba(255,255,255,0.025)",
                 display: "flex",
                 alignItems: "center",
-                justifyContent: "center",
-                color: "var(--muted-foreground)",
+                justifyContent: "space-between",
               }}
             >
-              {c.icon}
+              <span
+                style={{
+                  fontSize: "10px",
+                  fontWeight: 600,
+                  textTransform: "uppercase",
+                  letterSpacing: "0.08em",
+                  color: "var(--muted-foreground)",
+                }}
+              >
+                {c.label}
+              </span>
+              {/* ← colored icon badge only */}
+              <div
+                style={{
+                  width: "28px",
+                  height: "28px",
+                  borderRadius: "6px",
+                  border: `1px solid ${accentBorder}`,
+                  backgroundColor: accentDim,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: accent,
+                }}
+              >
+                {c.icon}
+              </div>
+            </div>
+            <div>
+              <div
+                style={{
+                  fontSize: "26px",
+                  fontWeight: 800,
+                  color: "var(--foreground)",
+                  lineHeight: 1,
+                  fontVariantNumeric: "tabular-nums",
+                  animation: "countUp 0.4s ease-out",
+                }}
+              >
+                {c.value}
+              </div>
+              <p
+                style={{
+                  fontSize: "11px",
+                  color: "var(--muted-foreground)",
+                  margin: "3px 0 0 0",
+                }}
+              >
+                {c.sub}
+              </p>
             </div>
           </div>
-          <div>
-            <div
-              style={{
-                fontSize: "26px",
-                fontWeight: 800,
-                color: "var(--foreground)",
-                lineHeight: 1,
-                fontVariantNumeric: "tabular-nums",
-                animation: "countUp 0.4s ease-out",
-              }}
-            >
-              {c.value}
-            </div>
-            <p
-              style={{
-                fontSize: "11px",
-                color: "var(--muted-foreground)",
-                margin: "3px 0 0 0",
-              }}
-            >
-              {c.sub}
-            </p>
-          </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 };
 
-// ─── Score bar ─────────────────────────────────────────────────────────────────
+// ─── Score bar — monochrome ────────────────────────────────────────────────────
 const ScoreBar = ({ score }) => {
   if (!score)
     return (
@@ -694,7 +818,7 @@ const ScoreBar = ({ score }) => {
   );
 };
 
-// ─── Status badge ──────────────────────────────────────────────────────────────
+// ─── Status Badge — colored ────────────────────────────────────────────────────
 const StatusBadge = ({ status }) => {
   const ok = status === "complete";
   return (
@@ -705,10 +829,11 @@ const StatusBadge = ({ status }) => {
         gap: "5px",
         padding: "3px 9px",
         borderRadius: "99px",
-        border: "1px solid var(--border)",
+        border: `1px solid ${ok ? C.greenBorder : C.redBorder}`,
+        backgroundColor: ok ? C.greenDim : C.redDim,
         fontSize: "11px",
         fontWeight: 500,
-        color: ok ? "var(--foreground)" : "var(--muted-foreground)",
+        color: ok ? C.green : C.red,
       }}
     >
       <div
@@ -716,8 +841,7 @@ const StatusBadge = ({ status }) => {
           width: "5px",
           height: "5px",
           borderRadius: "50%",
-          backgroundColor: ok ? "var(--foreground)" : "var(--muted-foreground)",
-          opacity: ok ? 1 : 0.5,
+          backgroundColor: ok ? C.green : C.red,
         }}
       />
       {ok ? "Complete" : "Failed"}
@@ -726,7 +850,7 @@ const StatusBadge = ({ status }) => {
 };
 
 // ─── Detail Drawer ─────────────────────────────────────────────────────────────
-const DetailDrawer = ({ job, onClose, onRegenerate }) => {
+const DetailDrawer = ({ job, onClose, onRegenerate, onDelete }) => {
   const metrics = [
     { label: "KS Statistic", value: job.ks ? job.ks.toFixed(3) : "—" },
     { label: "Mean Deviation", value: job.meanDev ?? "—" },
@@ -736,7 +860,6 @@ const DetailDrawer = ({ job, onClose, onRegenerate }) => {
     },
     { label: "Corr. Preserved", value: job.corrPct ? `${job.corrPct}%` : "—" },
   ];
-
   const details = [
     {
       icon: <FileCSVIcon size={13} />,
@@ -773,7 +896,7 @@ const DetailDrawer = ({ job, onClose, onRegenerate }) => {
         overflow: "hidden",
       }}
     >
-      {/* Drawer header */}
+      {/* Header */}
       <div
         style={{
           padding: "18px 20px",
@@ -798,6 +921,7 @@ const DetailDrawer = ({ job, onClose, onRegenerate }) => {
                 marginBottom: "4px",
               }}
             >
+              {/* ← colored status badge */}
               <StatusBadge status={job.status} />
               <span
                 style={{
@@ -882,7 +1006,6 @@ const DetailDrawer = ({ job, onClose, onRegenerate }) => {
               Similarity Score
             </p>
             <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
-              {/* Big score */}
               <div
                 style={{
                   fontSize: "38px",
@@ -895,7 +1018,6 @@ const DetailDrawer = ({ job, onClose, onRegenerate }) => {
               >
                 {job.score}%
               </div>
-              {/* Progress arc approximated as stacked bar */}
               <div style={{ flex: 1 }}>
                 <div
                   style={{
@@ -1023,7 +1145,6 @@ const DetailDrawer = ({ job, onClose, onRegenerate }) => {
             style={{
               display: "flex",
               flexDirection: "column",
-              gap: "0",
               borderRadius: "8px",
               border: "1px solid var(--border)",
               overflow: "hidden",
@@ -1081,7 +1202,7 @@ const DetailDrawer = ({ job, onClose, onRegenerate }) => {
         </div>
       </div>
 
-      {/* Pinned footer actions */}
+      {/* Footer actions */}
       <div
         style={{
           padding: "14px 20px",
@@ -1139,6 +1260,7 @@ const DetailDrawer = ({ job, onClose, onRegenerate }) => {
         </button>
         <button
           className="ghost-btn"
+          onClick={onDelete}
           style={{
             width: "100%",
             padding: "9px",
@@ -1254,7 +1376,6 @@ const HistoryTable = ({
                   i < jobs.length - 1 ? "1px solid var(--border)" : "none",
               }}
             >
-              {/* Active indicator */}
               <td style={{ padding: "12px 16px", width: "36px" }}>
                 <div
                   style={{
@@ -1269,31 +1390,27 @@ const HistoryTable = ({
                   }}
                 />
               </td>
-              {/* Date */}
               <td style={{ padding: "12px 16px", whiteSpace: "nowrap" }}>
-                <div>
-                  <p
-                    style={{
-                      fontSize: "12px",
-                      fontWeight: 500,
-                      color: "var(--foreground)",
-                      margin: "0 0 1px 0",
-                    }}
-                  >
-                    {job.date}
-                  </p>
-                  <p
-                    style={{
-                      fontSize: "11px",
-                      color: "var(--muted-foreground)",
-                      margin: 0,
-                    }}
-                  >
-                    {job.time}
-                  </p>
-                </div>
+                <p
+                  style={{
+                    fontSize: "12px",
+                    fontWeight: 500,
+                    color: "var(--foreground)",
+                    margin: "0 0 1px 0",
+                  }}
+                >
+                  {job.date}
+                </p>
+                <p
+                  style={{
+                    fontSize: "11px",
+                    color: "var(--muted-foreground)",
+                    margin: 0,
+                  }}
+                >
+                  {job.time}
+                </p>
               </td>
-              {/* File */}
               <td style={{ padding: "12px 16px" }}>
                 <div
                   style={{ display: "flex", alignItems: "center", gap: "9px" }}
@@ -1342,7 +1459,6 @@ const HistoryTable = ({
                   </div>
                 </div>
               </td>
-              {/* Rows */}
               <td style={{ padding: "12px 16px" }}>
                 <span
                   style={{
@@ -1354,7 +1470,6 @@ const HistoryTable = ({
                   {job.rows.toLocaleString()}
                 </span>
               </td>
-              {/* Cols */}
               <td style={{ padding: "12px 16px" }}>
                 <span
                   style={{
@@ -1366,15 +1481,13 @@ const HistoryTable = ({
                   {job.cols}
                 </span>
               </td>
-              {/* Score */}
               <td style={{ padding: "12px 16px" }}>
                 <ScoreBar score={job.score} />
               </td>
-              {/* Status */}
+              {/* ← colored status badge only */}
               <td style={{ padding: "12px 16px" }}>
                 <StatusBadge status={job.status} />
               </td>
-              {/* Duration */}
               <td style={{ padding: "12px 16px" }}>
                 <span
                   style={{
@@ -1389,7 +1502,6 @@ const HistoryTable = ({
             </tr>
           );
         })}
-
         {jobs.length === 0 && (
           <tr>
             <td
@@ -1419,8 +1531,16 @@ export default function History() {
   const [filter, setFilter] = useState("All");
   const [sortKey, setSortKey] = useState("date");
   const [sortDir, setSortDir] = useState("desc");
-  const [selected, setSelected] = useState(null); // full job object
+  const [selected, setSelected] = useState(null);
   const [searchFocused, setSearchFocused] = useState(false);
+  const [jobs, setJobs] = useState(ALL_JOBS);
+  const [deleteTarget, setDeleteTarget] = useState(null);
+
+  const handleDelete = () => {
+    setJobs((prev) => prev.filter((j) => j.id !== deleteTarget.id));
+    setDeleteTarget(null);
+    setSelected(null);
+  };
 
   const handleSort = (key) => {
     if (sortKey === key) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
@@ -1431,14 +1551,10 @@ export default function History() {
   };
 
   const filtered = useMemo(() => {
-    let list = ALL_JOBS;
-
-    // Status filter
+    let list = jobs;
     if (filter === "Complete")
       list = list.filter((j) => j.status === "complete");
     if (filter === "Failed") list = list.filter((j) => j.status === "failed");
-
-    // Search
     if (search.trim()) {
       const q = search.toLowerCase();
       list = list.filter(
@@ -1446,8 +1562,6 @@ export default function History() {
           j.file.toLowerCase().includes(q) || j.id.toLowerCase().includes(q),
       );
     }
-
-    // Sort
     list = [...list].sort((a, b) => {
       let av = a[sortKey],
         bv = b[sortKey];
@@ -1463,20 +1577,18 @@ export default function History() {
         return sortDir === "asc" ? av.localeCompare(bv) : bv.localeCompare(av);
       return sortDir === "asc" ? av - bv : bv - av;
     });
-
     return list;
-  }, [search, filter, sortKey, sortDir]);
+  }, [search, filter, sortKey, sortDir, jobs]);
 
-  // Keep selected in sync when filters change
   const selectedJob = selected
-    ? (ALL_JOBS.find((j) => j.id === selected.id) ?? null)
+    ? (jobs.find((j) => j.id === selected.id) ?? null)
     : null;
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
       <style>{STYLES}</style>
 
-      {/* ── Page header ── */}
+      {/* Page header */}
       <div
         style={{
           display: "flex",
@@ -1527,10 +1639,18 @@ export default function History() {
         </button>
       </div>
 
-      {/* ── Summary cards ── */}
-      <SummaryCards jobs={ALL_JOBS} />
+      {deleteTarget && (
+        <DeleteModal
+          job={deleteTarget}
+          onConfirm={handleDelete}
+          onCancel={() => setDeleteTarget(null)}
+        />
+      )}
 
-      {/* ── Table + Drawer container ── */}
+      {/* Summary cards */}
+      <SummaryCards jobs={jobs} />
+
+      {/* Table + Drawer */}
       <div
         style={{
           border: "1px solid var(--border)",
@@ -1541,7 +1661,6 @@ export default function History() {
           backgroundColor: "var(--card)",
         }}
       >
-        {/* Left: table */}
         <div
           style={{
             flex: 1,
@@ -1562,7 +1681,6 @@ export default function History() {
               flexWrap: "wrap",
             }}
           >
-            {/* Search */}
             <div
               style={{
                 display: "flex",
@@ -1618,8 +1736,6 @@ export default function History() {
                 </button>
               )}
             </div>
-
-            {/* Filter chips */}
             <div style={{ display: "flex", gap: "6px" }}>
               {FILTER_OPTIONS.map((f) => {
                 const active = filter === f;
@@ -1649,8 +1765,6 @@ export default function History() {
                 );
               })}
             </div>
-
-            {/* Count */}
             <span
               style={{
                 fontSize: "12px",
@@ -1659,11 +1773,10 @@ export default function History() {
                 flexShrink: 0,
               }}
             >
-              {filtered.length} of {ALL_JOBS.length}
+              {filtered.length} of {jobs.length}
             </span>
           </div>
 
-          {/* The table */}
           <HistoryTable
             jobs={filtered}
             selectedId={selectedJob?.id ?? null}
@@ -1674,12 +1787,12 @@ export default function History() {
           />
         </div>
 
-        {/* Right: detail drawer (conditional) */}
         {selectedJob && (
           <DetailDrawer
             job={selectedJob}
             onClose={() => setSelected(null)}
             onRegenerate={() => {}}
+            onDelete={() => setDeleteTarget(selectedJob)}
           />
         )}
       </div>
