@@ -1,1 +1,41 @@
-@import 'tailwindcss';
+@import url("https://fonts.googleapis.com/css2?family=Geist:wght@100..900&display=swap");
+@import "tailwindcss";
+
+* {
+  font-family: "Geist", sans-serif;
+}
+/* ── Paste this at the TOP of your src/index.css (before existing styles) ── */
+
+:root {
+  --background: #ffffff;
+  --card: #ffffff;
+  --foreground: #09090b;
+  --muted-foreground: #71717a;
+  --border: #e4e4e7;
+  --input-bg: #f4f4f5;
+  --primary: #09090b;
+  --primary-foreground: #fafafa;
+  --ring: #a1a1aa;
+}
+
+.dark {
+  --background: #161616;
+  --card: #161616;
+  --foreground: #fafafa;
+  --muted-foreground: #a1a1aa;
+  --border: #3a3a3a;
+  --input-bg: #202020;
+  --primary: #fafafa;
+  --primary-foreground: #161616;
+  --ring: #71717a;
+}
+@keyframes spotlight {
+  0% {
+    opacity: 0;
+    transform: translate(-72%, -62%) scale(0.5);
+  }
+  100% {
+    opacity: 1;
+    transform: translate(-50%, -40%) scale(1);
+  }
+}
