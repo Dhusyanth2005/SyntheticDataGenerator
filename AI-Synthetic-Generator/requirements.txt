@@ -1,0 +1,10 @@
+fastapi
+uvicorn
+python-multipart
+pandas
+numpy
+scipy
+scikit-learn
+matplotlib
+joblib
+openpyxl
