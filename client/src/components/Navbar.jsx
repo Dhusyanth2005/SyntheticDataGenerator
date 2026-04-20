@@ -110,7 +110,7 @@ export default function Navbar() {
         {/* CTA */}
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <a
-            href="#"
+            href="/login"
             style={{
               fontSize: 14,
               fontWeight: 500,

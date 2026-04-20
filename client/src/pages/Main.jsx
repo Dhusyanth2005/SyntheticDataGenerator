@@ -1,4 +1,22 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+
+// ─── API ─────────────────────────────────────────────────────────────────────
+const API_BASE = "http://localhost:3000";
+
+function authHeaders() {
+  const token = localStorage.getItem("token");
+  return { Authorization: `Bearer ${token}` };
+}
+
+async function fetchDashboardData() {
+  const res = await fetch(`${API_BASE}/api/generation/history`, {
+    headers: authHeaders(),
+  });
+  if (!res.ok) throw new Error("Failed to fetch");
+  const data = await res.json();
+  return data.generations || [];
+}
 
 // ─── Styles ────────────────────────────────────────────────────────────────────
 const STYLES = `
@@ -229,56 +247,18 @@ const CpuIcon = () => (
   </svg>
 );
 
-// ─── Mock Data ─────────────────────────────────────────────────────────────────
-const RECENT_JOBS = [
-  {
-    id: 1,
-    file: "patient_records.csv",
-    rows: 10000,
-    score: 94.2,
-    status: "done",
-    time: "2 min ago",
-  },
-  {
-    id: 2,
-    file: "financial_txns.csv",
-    rows: 50000,
-    score: 91.8,
-    status: "done",
-    time: "1 hr ago",
-  },
-  {
-    id: 3,
-    file: "loan_applications.csv",
-    rows: 5000,
-    score: 96.1,
-    status: "done",
-    time: "3 hrs ago",
-  },
-  {
-    id: 4,
-    file: "employee_data.csv",
-    rows: 2000,
-    score: 88.5,
-    status: "done",
-    time: "Yesterday",
-  },
-  {
-    id: 5,
-    file: "sensor_readings.csv",
-    rows: 25000,
-    score: null,
-    status: "processing",
-    time: "Just now",
-  },
-];
-
-const SYSTEM_SERVICES = [
-  { label: "ML Microservice", sub: "FastAPI · Python", ok: true },
-  { label: "PostgreSQL", sub: "Primary database", ok: true },
-  { label: "Google Drive API", sub: "Cloud file storage", ok: true },
-  { label: "Express Backend", sub: "Node.js · JWT auth", ok: true },
-];
+// ─── Helpers ───────────────────────────────────────────────────────────────────
+function timeAgo(dateStr) {
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return "Just now";
+  if (mins < 60) return `${mins} min ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs} hr${hrs > 1 ? "s" : ""} ago`;
+  const days = Math.floor(hrs / 24);
+  if (days === 1) return "Yesterday";
+  return `${days} days ago`;
+}
 
 const SPARKLINE = [3200, 8100, 5400, 12000, 9800, 16200, 22400];
 const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
@@ -506,7 +486,7 @@ const StatusBadge = ({ status }) => {
 };
 
 // ─── Recent Jobs ───────────────────────────────────────────────────────────────
-const RecentJobs = () => (
+const RecentJobs = ({ jobs = [], onViewAll }) => (
   <div
     style={{
       border: "1px solid var(--border)",
@@ -544,11 +524,12 @@ const RecentJobs = () => (
             color: "var(--muted-foreground)",
           }}
         >
-          {RECENT_JOBS.length}
+          {jobs.length}
         </span>
       </div>
       <button
         className="ghost-btn"
+        onClick={onViewAll}
         style={{
           display: "flex",
           alignItems: "center",
@@ -590,13 +571,13 @@ const RecentJobs = () => (
         </tr>
       </thead>
       <tbody>
-        {RECENT_JOBS.map((job, i) => (
+        {jobs.map((job, i) => (
           <tr
             key={job.id}
             className="dash-row-hover"
             style={{
               borderBottom:
-                i < RECENT_JOBS.length - 1 ? "1px solid var(--border)" : "none",
+                i < jobs.length - 1 ? "1px solid var(--border)" : "none",
               transition: "background-color 0.12s",
             }}
           >
@@ -788,134 +769,7 @@ const ActivityCard = () => {
   );
 };
 
-// ─── System Status ─────────────────────────────────────────────────────────────
-const SystemStatus = () => (
-  <div
-    className="dash-card"
-    style={{
-      border: "1px solid var(--border)",
-      borderRadius: "12px",
-      padding: "20px 22px",
-      display: "flex",
-      flexDirection: "column",
-      gap: "14px",
-      backgroundColor: "rgba(255,255,255,0.01)",
-      animation: "fadeSlideIn 0.35s ease-out 0.25s both",
-    }}
-  >
-    <div
-      style={{
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
-      }}
-    >
-      <p
-        style={{
-          fontSize: "11px",
-          fontWeight: 600,
-          textTransform: "uppercase",
-          letterSpacing: "0.08em",
-          color: "var(--muted-foreground)",
-          margin: 0,
-        }}
-      >
-        System Status
-      </p>
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: "5px",
-          fontSize: "12px",
-          color: "var(--foreground)",
-          fontWeight: 500,
-        }}
-      >
-        <div
-          style={{
-            width: "6px",
-            height: "6px",
-            borderRadius: "50%",
-            backgroundColor: "var(--foreground)",
-            animation: "pulse-dot 2s ease-in-out infinite",
-          }}
-        />
-        All systems operational
-      </div>
-    </div>
-    <div
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        borderRadius: "9px",
-        border: "1px solid var(--border)",
-        overflow: "hidden",
-      }}
-    >
-      {SYSTEM_SERVICES.map((s, i) => (
-        <div
-          key={s.label}
-          className="dash-row-hover"
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            padding: "10px 14px",
-            borderBottom:
-              i < SYSTEM_SERVICES.length - 1
-                ? "1px solid var(--border)"
-                : "none",
-            transition: "background-color 0.12s",
-          }}
-        >
-          <div>
-            <p
-              style={{
-                fontSize: "13px",
-                fontWeight: 500,
-                color: "var(--foreground)",
-                margin: "0 0 1px 0",
-              }}
-            >
-              {s.label}
-            </p>
-            <p
-              style={{
-                fontSize: "11px",
-                color: "var(--muted-foreground)",
-                margin: 0,
-              }}
-            >
-              {s.sub}
-            </p>
-          </div>
-          <div style={{ display: "flex", alignItems: "center", gap: "5px" }}>
-            <div
-              style={{
-                width: "6px",
-                height: "6px",
-                borderRadius: "50%",
-                backgroundColor: "var(--foreground)",
-                opacity: s.ok ? 1 : 0.3,
-              }}
-            />
-            <span
-              style={{
-                fontSize: "11px",
-                color: "var(--foreground)",
-                fontWeight: 500,
-                opacity: s.ok ? 1 : 0.4,
-              }}
-            >
-              {s.ok ? "Online" : "Offline"}
-            </span>
-          </div>
-        </div>
-      ))}
-    </div>
-  </div>
-);
+// (System Status removed)
 
 // ─── Quick Actions ─────────────────────────────────────────────────────────────
 const QUICK_ACTIONS = [
@@ -930,9 +784,9 @@ const QUICK_ACTIONS = [
   },
   {
     icon: <CloudIcon />,
-    label: "View Storage",
-    sub: "Browse Google Drive",
-    href: "#",
+    label: "View History",
+    sub: "Browse past generations",
+    href: "/history",
     accent: C.blue,
     accentDim: C.blueDim,
     accentBorder: C.blueBorder,
@@ -1054,7 +908,7 @@ const PIPELINE_STEPS = [
   {
     icon: <CpuIcon />,
     label: "Train",
-    sub: "Random Forest",
+    sub: "Multivariate Normal",
     accent: C.purple,
     accentDim: C.purpleDim,
     accentBorder: C.purpleBorder,
@@ -1078,7 +932,7 @@ const PIPELINE_STEPS = [
   {
     icon: <CloudIcon />,
     label: "Store",
-    sub: "Google Drive",
+    sub: "Local Storage",
     accent: C.blue,
     accentDim: C.blueDim,
     accentBorder: C.blueBorder,
@@ -1189,6 +1043,39 @@ const PipelineOverview = () => (
 
 // ─── Main Dashboard ────────────────────────────────────────────────────────────
 export default function Main() {
+  const navigate = useNavigate();
+  const [gens, setGens] = useState([]);
+
+  useEffect(() => {
+    fetchDashboardData()
+      .then(setGens)
+      .catch((err) => console.error("Dashboard fetch failed:", err));
+  }, []);
+
+  // Derived stats
+  const totalDatasets = gens.length;
+  const totalRows = gens.reduce((a, g) => a + (g.rows_generated || 0), 0);
+  const scored = gens.filter((g) => g.quality_score != null);
+  const avgScore = scored.length
+    ? (scored.reduce((a, g) => a + g.quality_score, 0) / scored.length).toFixed(1)
+    : "—";
+
+  const recentJobs = gens.slice(0, 5).map((g) => ({
+    id: g.id,
+    file: g.original_file_name,
+    rows: g.rows_generated || 0,
+    score: g.quality_score != null ? parseFloat(g.quality_score.toFixed(1)) : null,
+    status: "done",
+    time: timeAgo(g.created_at),
+  }));
+
+  const rowsFormatted =
+    totalRows >= 1000000
+      ? `${(totalRows / 1000000).toFixed(1)}M`
+      : totalRows >= 1000
+        ? `${(totalRows / 1000).toFixed(1)}K`
+        : String(totalRows);
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
       <style>{STYLES}</style>
@@ -1265,27 +1152,24 @@ export default function Main() {
         <StatCard
           icon={<DatabaseIcon />}
           label="Total Datasets"
-          value="48"
+          value={String(totalDatasets)}
           sub="across all generations"
-          delta="+12 this week"
           animDelay={0}
           themeIdx={0}
         />
         <StatCard
           icon={<ZapIcon />}
           label="Rows Generated"
-          value="1.2M"
+          value={rowsFormatted}
           sub="synthetic data points"
-          delta="+22,400 today"
           animDelay={60}
           themeIdx={1}
         />
         <StatCard
           icon={<BarChartIcon />}
           label="Avg. Similarity"
-          value="93.4%"
-          sub="KS-test validated"
-          delta="+1.2% this week"
+          value={`${avgScore}%`}
+          sub="quality score validated"
           animDelay={120}
           themeIdx={2}
         />
@@ -1311,17 +1195,12 @@ export default function Main() {
           alignItems: "start",
         }}
       >
-        <RecentJobs />
+        <RecentJobs jobs={recentJobs} onViewAll={() => navigate("/history")} />
         <ActivityCard />
       </div>
 
       {/* ── Bottom row ── */}
-      <div
-        style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px" }}
-      >
-        <QuickActions />
-        <SystemStatus />
-      </div>
+      <QuickActions />
     </div>
   );
 }

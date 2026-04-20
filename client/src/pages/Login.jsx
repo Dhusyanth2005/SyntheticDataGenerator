@@ -86,8 +86,41 @@ const FeatureBadge = ({ icon, text }) => (
 
 // ─── LoginForm ─────────────────────────────────────────────────────────────────
 const LoginForm = () => {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
   const [focused, setFocused] = useState(null);
+
+  const navigate = useNavigate();
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setError("");
+
+    try {
+      const res = await fetch("http://localhost:3000/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.message || "Invalid credentials");
+      }
+
+      localStorage.setItem("token", data.token);
+      navigate("/dashboard"); // Change to your dashboard route
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const baseInput = (name) => ({
     width: "100%",
@@ -116,8 +149,14 @@ const LoginForm = () => {
   return (
     <form
       style={{ display: "flex", flexDirection: "column", gap: "14px" }}
-      onSubmit={(e) => e.preventDefault()}
+      onSubmit={handleSubmit}
     >
+      {error && (
+        <p style={{ color: "#ef4444", fontSize: "14px", textAlign: "center", margin: 0 }}>
+          {error}
+        </p>
+      )}
+
       <div>
         <label style={labelStyle} htmlFor="userEmail">
           Email address*
@@ -127,8 +166,11 @@ const LoginForm = () => {
           type="email"
           id="userEmail"
           placeholder="Enter your email address"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
           onFocus={() => setFocused("email")}
           onBlur={() => setFocused(null)}
+          required
         />
       </div>
 
@@ -142,8 +184,11 @@ const LoginForm = () => {
             id="password"
             type={isPasswordVisible ? "text" : "password"}
             placeholder="••••••••••••••••"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
             onFocus={() => setFocused("password")}
             onBlur={() => setFocused(null)}
+            required
           />
           <button
             type="button"
@@ -159,7 +204,6 @@ const LoginForm = () => {
               color: "var(--muted-foreground)",
               padding: "0",
               lineHeight: 0,
-              display: "flex",
             }}
           >
             {isPasswordVisible ? <EyeOffIcon /> : <EyeIcon />}
@@ -182,6 +226,7 @@ const LoginForm = () => {
 
       <button
         type="submit"
+        disabled={loading}
         style={{
           width: "100%",
           padding: "9px 16px",
@@ -191,18 +236,17 @@ const LoginForm = () => {
           borderRadius: "6px",
           fontSize: "14px",
           fontWeight: 500,
-          cursor: "pointer",
-          lineHeight: "1.5",
-          marginTop: "2px",
+          cursor: loading ? "not-allowed" : "pointer",
+          opacity: loading ? 0.85 : 1,
         }}
       >
-        Sign In to Synth AI
+        {loading ? "Signing in..." : "Sign In to Synth AI"}
       </button>
     </form>
   );
 };
 
-// ─── Login Page ────────────────────────────────────────────────────────────────
+// ─── Main Login Page ───────────────────────────────────────────────────────────
 const Login = () => {
   const [googleHovered, setGoogleHovered] = useState(false);
   const navigate = useNavigate();
@@ -217,7 +261,7 @@ const Login = () => {
         color: "var(--foreground)",
       }}
     >
-      {/* ── LEFT PANEL: Spotlight — 60% ── */}
+      {/* LEFT PANEL - Spotlight */}
       <div
         data-spotlight-container
         style={{
@@ -244,29 +288,11 @@ const Login = () => {
             textAlign: "center",
           }}
         >
-          {/* ── Logo + Name ── */}
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: "10px",
-              marginBottom: "40px",
-            }}
-          >
-            <img
-              src={synthLogo}
-              alt="Synth AI logo"
-              style={{ width: "40px", height: "40px", objectFit: "contain" }}
-            />
-            <span
-              style={{ fontSize: "20px", fontWeight: 600, color: "#fafafa" }}
-            >
-              Synth AI
-            </span>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "10px", marginBottom: "40px" }}>
+            <img src={synthLogo} alt="Synth AI logo" style={{ width: "40px", height: "40px", objectFit: "contain" }} />
+            <span style={{ fontSize: "20px", fontWeight: 600, color: "#fafafa" }}>Synth AI</span>
           </div>
 
-          {/* ── Headline ── */}
           <h1
             style={{
               fontSize: "clamp(32px, 4.5vw, 58px)",
@@ -286,7 +312,6 @@ const Login = () => {
             Synth AI.
           </h1>
 
-          {/* ── Subtext ── */}
           <p
             style={{
               fontSize: "15px",
@@ -301,15 +326,7 @@ const Login = () => {
             are ready. Sign in to continue your work.
           </p>
 
-          {/* ── Feature Badges ── */}
-          <div
-            style={{
-              display: "flex",
-              flexWrap: "wrap",
-              gap: "10px",
-              justifyContent: "center",
-            }}
-          >
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "10px", justifyContent: "center" }}>
             <FeatureBadge icon="🔒" text="Privacy Safe" />
             <FeatureBadge icon="📊" text="Stat Validated" />
             <FeatureBadge icon="⚡" text="5,000+ Rows" />
@@ -318,7 +335,7 @@ const Login = () => {
         </div>
       </div>
 
-      {/* ── RIGHT PANEL: Form — 40% ── */}
+      {/* RIGHT PANEL - Form */}
       <div
         style={{
           flex: "0 0 40%",
@@ -333,122 +350,70 @@ const Login = () => {
       >
         <div style={{ width: "100%", maxWidth: "400px" }}>
           <div style={{ marginBottom: "28px" }}>
-            {/* ── Right panel heading with logo ── */}
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "10px",
-                marginBottom: "6px",
-              }}
-            >
-              <img
-                src={synthLogo}
-                alt="Synth AI logo"
-                style={{ width: "32px", height: "32px", objectFit: "contain" }}
-              />
-              <h2
-                style={{
-                  fontSize: "24px",
-                  fontWeight: 700,
-                  color: "var(--foreground)",
-                  margin: 0,
-                  lineHeight: "1.2",
-                }}
-              >
+            <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "6px" }}>
+              <img src={synthLogo} alt="Synth AI logo" style={{ width: "32px", height: "32px", objectFit: "contain" }} />
+              <h2 style={{ fontSize: "24px", fontWeight: 700, color: "var(--foreground)", margin: 0 }}>
                 Sign In to Synth AI
               </h2>
             </div>
-            <p
-              style={{
-                fontSize: "14px",
-                color: "var(--muted-foreground)",
-                margin: 0,
-              }}
-            >
+            <p style={{ fontSize: "14px", color: "var(--muted-foreground)", margin: 0 }}>
               Access your synthetic datasets and generation history.
             </p>
           </div>
 
-          <div
-            style={{ display: "flex", flexDirection: "column", gap: "16px" }}
+          <LoginForm />
+
+          <p
+            style={{
+              textAlign: "center",
+              fontSize: "14px",
+              color: "var(--muted-foreground)",
+              margin: "20px 0 16px",
+            }}
           >
-            <LoginForm />
-
-            <p
-              style={{
-                textAlign: "center",
-                fontSize: "14px",
-                color: "var(--muted-foreground)",
-                margin: 0,
+            Don't have an account?{" "}
+            <a
+              href="/register"
+              onClick={(e) => {
+                e.preventDefault();
+                navigate("/register");
               }}
+              style={{ color: "var(--foreground)", textDecoration: "none", fontWeight: 700 }}
             >
-              Don't have an account?{" "}
-              <a
-                href="/register"
-                onClick={(e) => {
-                  e.preventDefault();
-                  navigate("/register");
-                }}
-                style={{
-                  color: "var(--foreground)",
-                  textDecoration: "none",
-                  fontWeight: 700,
-                }}
-              >
-                Sign up instead
-              </a>
-            </p>
+              Sign up instead
+            </a>
+          </p>
 
-            <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-              <div
-                style={{
-                  flex: 1,
-                  height: "1px",
-                  backgroundColor: "var(--border)",
-                }}
-              />
-              <span
-                style={{ fontSize: "14px", color: "var(--muted-foreground)" }}
-              >
-                or
-              </span>
-              <div
-                style={{
-                  flex: 1,
-                  height: "1px",
-                  backgroundColor: "var(--border)",
-                }}
-              />
-            </div>
-
-            <button
-              onMouseEnter={() => setGoogleHovered(true)}
-              onMouseLeave={() => setGoogleHovered(false)}
-              style={{
-                width: "100%",
-                padding: "9px 16px",
-                backgroundColor: googleHovered
-                  ? "var(--input-bg)"
-                  : "transparent",
-                border: "1px solid var(--border)",
-                borderColor: googleHovered ? "var(--ring)" : "var(--border)",
-                borderRadius: "8px",
-                cursor: "pointer",
-                fontSize: "14px",
-                fontWeight: 500,
-                color: "var(--foreground)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: "8px",
-                transition: "background-color 0.2s, border-color 0.2s",
-              }}
-            >
-              <GoogleIcon />
-              Sign in with Google
-            </button>
+          <div style={{ display: "flex", alignItems: "center", gap: "12px", margin: "16px 0" }}>
+            <div style={{ flex: 1, height: "1px", backgroundColor: "var(--border)" }} />
+            <span style={{ fontSize: "14px", color: "var(--muted-foreground)" }}>or</span>
+            <div style={{ flex: 1, height: "1px", backgroundColor: "var(--border)" }} />
           </div>
+
+          <button
+            onMouseEnter={() => setGoogleHovered(true)}
+            onMouseLeave={() => setGoogleHovered(false)}
+            style={{
+              width: "100%",
+              padding: "9px 16px",
+              backgroundColor: googleHovered ? "var(--input-bg)" : "transparent",
+              border: "1px solid var(--border)",
+              borderColor: googleHovered ? "var(--ring)" : "var(--border)",
+              borderRadius: "8px",
+              cursor: "pointer",
+              fontSize: "14px",
+              fontWeight: 500,
+              color: "var(--foreground)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: "8px",
+              transition: "background-color 0.2s, border-color 0.2s",
+            }}
+          >
+            <GoogleIcon />
+            Sign in with Google
+          </button>
         </div>
       </div>
     </div>

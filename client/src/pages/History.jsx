@@ -1,4 +1,74 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
+
+// ─── API ─────────────────────────────────────────────────────────────────────
+const API_BASE = "http://localhost:3000";
+
+function authHeaders() {
+  const token = localStorage.getItem("token");
+  return { Authorization: `Bearer ${token}` };
+}
+
+async function fetchHistory() {
+  const res = await fetch(`${API_BASE}/api/generation/history`, {
+    headers: authHeaders(),
+  });
+  if (!res.ok) throw new Error("Failed to fetch history");
+  const data = await res.json();
+  return data.generations || [];
+}
+
+async function deleteGenerationAPI(id) {
+  const res = await fetch(`${API_BASE}/api/generation/${id}`, {
+    method: "DELETE",
+    headers: authHeaders(),
+  });
+  if (!res.ok) throw new Error("Failed to delete");
+  return res.json();
+}
+
+async function downloadFile(downloadLink, fileName) {
+  const res = await fetch(`${API_BASE}${downloadLink}`, {
+    headers: authHeaders(),
+  });
+  if (!res.ok) throw new Error("Download failed");
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = fileName;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+// Helper: map a DB generation record to the shape the UI expects
+function mapGenToJob(gen) {
+  const d = new Date(gen.created_at);
+  return {
+    id: gen.id,
+    file: gen.original_file_name,
+    synth: gen.drive_link
+      ? gen.drive_link.split("/").pop()
+      : "—",
+    rows: gen.rows_generated ?? 0,
+    cols: "—",
+    score: gen.quality_score != null ? parseFloat(gen.quality_score.toFixed(1)) : null,
+    ks: null,
+    meanDev: null,
+    varRatio: null,
+    corrPct: null,
+    model: "Multivariate Normal",
+    status: "complete",
+    duration: "—",
+    date: d.toISOString().slice(0, 10),
+    time: d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }),
+    size: gen.generated_file_size
+      ? gen.generated_file_size >= 1048576
+        ? `${(gen.generated_file_size / 1048576).toFixed(1)} MB`
+        : `${(gen.generated_file_size / 1024).toFixed(1)} KB`
+      : "—",
+    driveLink: gen.drive_link || null,
+  };
+}
 
 // ─── Confirm Delete Modal ──────────────────────────────────────────────────────
 const DeleteModal = ({ job, onConfirm, onCancel }) => (
@@ -406,237 +476,8 @@ const ShieldIcon = () => (
   </svg>
 );
 
-// ─── Mock Data ─────────────────────────────────────────────────────────────────
-const ALL_JOBS = [
-  {
-    id: "gen_001",
-    file: "patient_records.csv",
-    synth: "synth_patient_records_10000.csv",
-    rows: 10000,
-    cols: 12,
-    score: 94.2,
-    ks: 0.031,
-    meanDev: "0.18%",
-    varRatio: 0.981,
-    corrPct: 97.4,
-    model: "Random Forest",
-    status: "complete",
-    duration: "28s",
-    date: "2025-06-10",
-    time: "14:32",
-    size: "2.4 MB",
-    driveLink: "#",
-  },
-  {
-    id: "gen_002",
-    file: "financial_txns.csv",
-    synth: "synth_financial_txns_50000.csv",
-    rows: 50000,
-    cols: 8,
-    score: 91.8,
-    ks: 0.044,
-    meanDev: "0.31%",
-    varRatio: 0.963,
-    corrPct: 95.1,
-    model: "Random Forest",
-    status: "complete",
-    duration: "1m 52s",
-    date: "2025-06-10",
-    time: "11:15",
-    size: "9.1 MB",
-    driveLink: "#",
-  },
-  {
-    id: "gen_003",
-    file: "loan_applications.csv",
-    synth: "synth_loan_applications_5000.csv",
-    rows: 5000,
-    cols: 15,
-    score: 96.1,
-    ks: 0.022,
-    meanDev: "0.09%",
-    varRatio: 0.994,
-    corrPct: 98.7,
-    model: "Random Forest",
-    status: "complete",
-    duration: "14s",
-    date: "2025-06-09",
-    time: "17:04",
-    size: "1.1 MB",
-    driveLink: "#",
-  },
-  {
-    id: "gen_004",
-    file: "employee_data.csv",
-    synth: "synth_employee_data_2000.csv",
-    rows: 2000,
-    cols: 10,
-    score: 88.5,
-    ks: 0.071,
-    meanDev: "0.52%",
-    varRatio: 0.941,
-    corrPct: 92.3,
-    model: "Random Forest",
-    status: "complete",
-    duration: "9s",
-    date: "2025-06-09",
-    time: "10:22",
-    size: "0.4 MB",
-    driveLink: "#",
-  },
-  {
-    id: "gen_005",
-    file: "sensor_readings.csv",
-    synth: "synth_sensor_readings_25000.csv",
-    rows: 25000,
-    cols: 6,
-    score: 97.3,
-    ks: 0.018,
-    meanDev: "0.06%",
-    varRatio: 0.997,
-    corrPct: 99.1,
-    model: "Random Forest",
-    status: "complete",
-    duration: "44s",
-    date: "2025-06-08",
-    time: "09:55",
-    size: "4.2 MB",
-    driveLink: "#",
-  },
-  {
-    id: "gen_006",
-    file: "ecommerce_orders.csv",
-    synth: "synth_ecommerce_orders_1000.csv",
-    rows: 1000,
-    cols: 9,
-    score: 90.4,
-    ks: 0.058,
-    meanDev: "0.44%",
-    varRatio: 0.957,
-    corrPct: 93.8,
-    model: "Random Forest",
-    status: "complete",
-    duration: "6s",
-    date: "2025-06-07",
-    time: "16:41",
-    size: "0.2 MB",
-    driveLink: "#",
-  },
-  {
-    id: "gen_007",
-    file: "clinical_trials.csv",
-    synth: "synth_clinical_trials_8000.csv",
-    rows: 8000,
-    cols: 20,
-    score: 93.7,
-    ks: 0.037,
-    meanDev: "0.22%",
-    varRatio: 0.976,
-    corrPct: 96.5,
-    model: "Random Forest",
-    status: "complete",
-    duration: "35s",
-    date: "2025-06-06",
-    time: "13:10",
-    size: "1.9 MB",
-    driveLink: "#",
-  },
-  {
-    id: "gen_008",
-    file: "supply_chain.csv",
-    synth: "—",
-    rows: 15000,
-    cols: 11,
-    score: null,
-    ks: null,
-    meanDev: null,
-    varRatio: null,
-    corrPct: null,
-    model: "Random Forest",
-    status: "failed",
-    duration: "—",
-    date: "2025-06-05",
-    time: "08:30",
-    size: "—",
-    driveLink: null,
-  },
-  {
-    id: "gen_009",
-    file: "insurance_claims.csv",
-    synth: "synth_insurance_claims_30000.csv",
-    rows: 30000,
-    cols: 14,
-    score: 89.2,
-    ks: 0.064,
-    meanDev: "0.48%",
-    varRatio: 0.951,
-    corrPct: 91.7,
-    model: "Random Forest",
-    status: "complete",
-    duration: "58s",
-    date: "2025-06-04",
-    time: "15:22",
-    size: "5.7 MB",
-    driveLink: "#",
-  },
-  {
-    id: "gen_010",
-    file: "retail_transactions.csv",
-    synth: "synth_retail_transactions_100000.csv",
-    rows: 100000,
-    cols: 7,
-    score: 92.6,
-    ks: 0.041,
-    meanDev: "0.27%",
-    varRatio: 0.969,
-    corrPct: 94.9,
-    model: "Random Forest",
-    status: "complete",
-    duration: "3m 41s",
-    date: "2025-06-03",
-    time: "11:05",
-    size: "18.3 MB",
-    driveLink: "#",
-  },
-  {
-    id: "gen_011",
-    file: "hr_performance.csv",
-    synth: "synth_hr_performance_3000.csv",
-    rows: 3000,
-    cols: 13,
-    score: 95.8,
-    ks: 0.025,
-    meanDev: "0.11%",
-    varRatio: 0.989,
-    corrPct: 97.9,
-    model: "Random Forest",
-    status: "complete",
-    duration: "12s",
-    date: "2025-06-02",
-    time: "09:18",
-    size: "0.6 MB",
-    driveLink: "#",
-  },
-  {
-    id: "gen_012",
-    file: "fraud_detection.csv",
-    synth: "synth_fraud_detection_20000.csv",
-    rows: 20000,
-    cols: 16,
-    score: 91.1,
-    ks: 0.051,
-    meanDev: "0.39%",
-    varRatio: 0.958,
-    corrPct: 93.4,
-    model: "Random Forest",
-    status: "complete",
-    duration: "38s",
-    date: "2025-06-01",
-    time: "14:44",
-    size: "3.8 MB",
-    driveLink: "#",
-  },
-];
+// (Mock data removed — fetched from API now)
+const ALL_JOBS = [];
 
 const FILTER_OPTIONS = ["All", "Complete", "Failed"];
 
@@ -681,8 +522,8 @@ const SummaryCards = ({ jobs }) => {
     {
       icon: <ClockIcon />,
       label: "This Month",
-      value: String(jobs.filter((j) => j.date.startsWith("2025-06")).length),
-      sub: "generations in June",
+      value: String(jobs.filter((j) => j.date.startsWith(new Date().toISOString().slice(0, 7))).length),
+      sub: `generations in ${new Date().toLocaleDateString("en-US", { month: "long" })}`,
     },
   ];
 
@@ -1216,6 +1057,9 @@ const DetailDrawer = ({ job, onClose, onRegenerate, onDelete }) => {
         {job.status === "complete" && (
           <button
             className="gen-btn"
+            onClick={() => {
+              if (job.driveLink) downloadFile(job.driveLink, job.synth);
+            }}
             style={{
               width: "100%",
               padding: "10px",
@@ -1533,11 +1377,27 @@ export default function History() {
   const [sortDir, setSortDir] = useState("desc");
   const [selected, setSelected] = useState(null);
   const [searchFocused, setSearchFocused] = useState(false);
-  const [jobs, setJobs] = useState(ALL_JOBS);
+  const [jobs, setJobs] = useState([]);
   const [deleteTarget, setDeleteTarget] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-  const handleDelete = () => {
-    setJobs((prev) => prev.filter((j) => j.id !== deleteTarget.id));
+  // Fetch history from API on mount
+  useEffect(() => {
+    setLoading(true);
+    fetchHistory()
+      .then((gens) => setJobs(gens.map(mapGenToJob)))
+      .catch((err) => console.error("Failed to load history:", err))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    try {
+      await deleteGenerationAPI(deleteTarget.id);
+      setJobs((prev) => prev.filter((j) => j.id !== deleteTarget.id));
+    } catch (err) {
+      console.error("Delete failed:", err);
+    }
     setDeleteTarget(null);
     setSelected(null);
   };
