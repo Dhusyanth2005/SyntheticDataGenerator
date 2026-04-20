@@ -102,11 +102,67 @@ const FeatureBadge = ({ icon, text }) => (
 
 // ─── RegisterForm ──────────────────────────────────────────────────────────────
 const RegisterForm = () => {
+  const [formData, setFormData] = useState({
+    name: "",
+    email: "",
+    password: "",
+    confirmPassword: "",
+  });
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
-  const [isConfirmPasswordVisible, setIsConfirmPasswordVisible] =
-    useState(false);
+  const [isConfirmPasswordVisible, setIsConfirmPasswordVisible] = useState(false);
   const [agreed, setAgreed] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
   const [focused, setFocused] = useState(null);
+
+  const navigate = useNavigate();
+
+  const handleChange = (e) => {
+    setFormData({ ...formData, [e.target.id]: e.target.value });
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError("");
+
+    if (formData.password !== formData.confirmPassword) {
+      setError("Passwords do not match");
+      return;
+    }
+
+    if (!agreed) {
+      setError("Please agree to the privacy policy & terms");
+      return;
+    }
+
+    setLoading(true);
+    setError("");
+
+    try {
+      const res = await fetch("http://localhost:3000/api/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: formData.name,
+          email: formData.email,
+          password: formData.password,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.message || "Registration failed");
+      }
+
+      alert("✅ Account created successfully! Please sign in.");
+      navigate("/login");
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const baseInput = (name) => ({
     width: "100%",
@@ -135,48 +191,57 @@ const RegisterForm = () => {
   return (
     <form
       style={{ display: "flex", flexDirection: "column", gap: "14px" }}
-      onSubmit={(e) => e.preventDefault()}
+      onSubmit={handleSubmit}
     >
+      {error && (
+        <p style={{ color: "#ef4444", fontSize: "14px", textAlign: "center", margin: "0 0 10px 0" }}>
+          {error}
+        </p>
+      )}
+
       <div>
-        <label style={labelStyle} htmlFor="username">
-          Username*
-        </label>
+        <label style={labelStyle} htmlFor="name">Username*</label>
         <input
           style={baseInput("username")}
           type="text"
-          id="username"
+          id="name"
           placeholder="Enter your username"
+          value={formData.name}
+          onChange={handleChange}
           onFocus={() => setFocused("username")}
           onBlur={() => setFocused(null)}
+          required
         />
       </div>
 
       <div>
-        <label style={labelStyle} htmlFor="userEmail">
-          Email address*
-        </label>
+        <label style={labelStyle} htmlFor="userEmail">Email address*</label>
         <input
           style={baseInput("email")}
           type="email"
-          id="userEmail"
+          id="email"
           placeholder="Enter your email address"
+          value={formData.email}
+          onChange={handleChange}
           onFocus={() => setFocused("email")}
           onBlur={() => setFocused(null)}
+          required
         />
       </div>
 
       <div>
-        <label style={labelStyle} htmlFor="password">
-          Password*
-        </label>
+        <label style={labelStyle} htmlFor="password">Password*</label>
         <div style={{ position: "relative" }}>
           <input
             style={{ ...baseInput("password"), paddingRight: "38px" }}
             id="password"
             type={isPasswordVisible ? "text" : "password"}
             placeholder="••••••••••••••••"
+            value={formData.password}
+            onChange={handleChange}
             onFocus={() => setFocused("password")}
             onBlur={() => setFocused(null)}
+            required
           />
           <button
             type="button"
@@ -201,17 +266,18 @@ const RegisterForm = () => {
       </div>
 
       <div>
-        <label style={labelStyle} htmlFor="confirmPassword">
-          Confirm Password*
-        </label>
+        <label style={labelStyle} htmlFor="confirmPassword">Confirm Password*</label>
         <div style={{ position: "relative" }}>
           <input
             style={{ ...baseInput("confirm"), paddingRight: "38px" }}
             id="confirmPassword"
             type={isConfirmPasswordVisible ? "text" : "password"}
             placeholder="••••••••••••••••"
+            value={formData.confirmPassword}
+            onChange={handleChange}
             onFocus={() => setFocused("confirm")}
             onBlur={() => setFocused(null)}
+            required
           />
           <button
             type="button"
@@ -286,6 +352,7 @@ const RegisterForm = () => {
 
       <button
         type="submit"
+        disabled={loading}
         style={{
           width: "100%",
           padding: "9px 16px",
@@ -295,12 +362,13 @@ const RegisterForm = () => {
           borderRadius: "6px",
           fontSize: "14px",
           fontWeight: 500,
-          cursor: "pointer",
+          cursor: loading ? "not-allowed" : "pointer",
           lineHeight: "1.5",
           marginTop: "2px",
+          opacity: loading ? 0.85 : 1,
         }}
       >
-        Sign Up to Synth AI
+        {loading ? "Creating account..." : "Sign Up to Synth AI"}
       </button>
     </form>
   );
@@ -321,7 +389,7 @@ const Register = () => {
         color: "var(--foreground)",
       }}
     >
-      {/* ── LEFT PANEL: Spotlight — 60% ── */}
+      {/* LEFT PANEL: Spotlight — 60% */}
       <div
         data-spotlight-container
         style={{
@@ -348,7 +416,6 @@ const Register = () => {
             textAlign: "center",
           }}
         >
-          {/* ── Logo + Name ── */}
           <div
             style={{
               display: "flex",
@@ -370,7 +437,6 @@ const Register = () => {
             </span>
           </div>
 
-          {/* ── Headline ── */}
           <h1
             style={{
               fontSize: "clamp(32px, 4.5vw, 58px)",
@@ -390,7 +456,6 @@ const Register = () => {
             At Scale.
           </h1>
 
-          {/* ── Subtext ── */}
           <p
             style={{
               fontSize: "15px",
@@ -406,7 +471,6 @@ const Register = () => {
             ready for ML training and testing.
           </p>
 
-          {/* ── Feature Badges ── */}
           <div
             style={{
               display: "flex",
@@ -423,7 +487,7 @@ const Register = () => {
         </div>
       </div>
 
-      {/* ── RIGHT PANEL: Form — 40% ── */}
+      {/* RIGHT PANEL: Form — 40% */}
       <div
         style={{
           flex: "0 0 40%",
@@ -438,7 +502,6 @@ const Register = () => {
       >
         <div style={{ width: "100%", maxWidth: "400px" }}>
           <div style={{ marginBottom: "28px" }}>
-            {/* ── Right panel heading with logo ── */}
             <div
               style={{
                 display: "flex",
@@ -475,9 +538,7 @@ const Register = () => {
             </p>
           </div>
 
-          <div
-            style={{ display: "flex", flexDirection: "column", gap: "16px" }}
-          >
+          <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
             <RegisterForm />
 
             <p

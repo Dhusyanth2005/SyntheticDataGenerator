@@ -348,7 +348,7 @@ const UserDropdown = ({ navigate }) => {
   const items = [
     { label: "Profile", icon: <UserIcon />, path: "/profile" },
     { label: "Settings", icon: <SettingsIcon />, path: "/settings" },
-    { label: "Sign out", icon: <LogOutIcon />, path: "/logout", danger: true },
+    { label: "Sign out", icon: <LogOutIcon />, path: "/", danger: true },
   ];
 
   return (

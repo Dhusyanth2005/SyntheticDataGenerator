@@ -88,7 +88,12 @@ async function generateSyntheticData(req, res) {
     const syntheticContent = data.synthetic_csv_content;
     const qualityScore = data.quality_score ?? null;
     const actualRowsGenerated = data.rows_generated ?? requestedRows;
+    const metrics = data.metrics ?? null;
     const fileSize = Buffer.byteLength(syntheticContent, 'utf8');
+
+    // Build a preview (header + first 20 data rows) for the frontend viewer
+    const csvLines = syntheticContent.split('\n');
+    const csvPreview = csvLines.slice(0, 21).join('\n');
 
     // ─── 2. Save synthetic CSV to local disk ───
     const outputFileName = `synthetic_${actualRowsGenerated}_${Date.now()}_${uuidv4().substring(0, 8)}.csv`;
@@ -119,7 +124,9 @@ async function generateSyntheticData(req, res) {
       downloadLink: `/api/generation/download/${outputFileName}`,
       qualityScore: generation.quality_score,
       rowsGenerated: generation.rows_generated,
-      createdAt: generation.created_at
+      createdAt: generation.created_at,
+      metrics: metrics,
+      csvPreview: csvPreview
     });
   } catch (error) {
     // Cleanup uploaded file on error
@@ -173,8 +180,46 @@ async function downloadGeneration(req, res) {
   }
 }
 
+async function getUserHistory(req, res) {
+  const userId = req.user.userId;
+  try {
+    const generations = await prisma.generation.findMany({
+      where: { user_id: userId },
+      orderBy: { created_at: 'desc' },
+    });
+    return res.json({ success: true, generations });
+  } catch (error) {
+    console.error('History error:', error);
+    return res.status(500).json({ success: false, message: 'Failed to fetch history', error: error.message });
+  }
+}
+
+async function deleteGeneration(req, res) {
+  const userId = req.user.userId;
+  const { id } = req.params;
+  try {
+    const gen = await prisma.generation.findUnique({ where: { id } });
+    if (!gen || gen.user_id !== userId) {
+      return res.status(404).json({ success: false, message: 'Generation not found' });
+    }
+    // Try to delete the output file from disk
+    if (gen.drive_link) {
+      const fileName = gen.drive_link.split('/').pop();
+      const filePath = path.join(UPLOADS_OUTPUT_DIR, fileName);
+      await fs.unlink(filePath).catch(() => {});
+    }
+    await prisma.generation.delete({ where: { id } });
+    return res.json({ success: true, message: 'Generation deleted' });
+  } catch (error) {
+    console.error('Delete error:', error);
+    return res.status(500).json({ success: false, message: 'Failed to delete generation', error: error.message });
+  }
+}
+
 module.exports = {
   upload,
   generateSyntheticData,
-  downloadGeneration
+  downloadGeneration,
+  getUserHistory,
+  deleteGeneration
 };

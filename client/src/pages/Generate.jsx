@@ -1,5 +1,40 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 
+// ─── API ───────────────────────────────────────────────────────────────────────────
+const API_BASE = "http://localhost:3000";
+
+async function callGenerateAPI(file, rows) {
+  const token = localStorage.getItem("token");
+  const formData = new FormData();
+  formData.append("file", file);
+  formData.append("rows", rows.toString());
+  const res = await fetch(`${API_BASE}/api/generation/generate`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}` },
+    body: formData,
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ message: "Request failed" }));
+    throw new Error(err.message || `Server error: ${res.status}`);
+  }
+  return res.json();
+}
+
+async function downloadFile(downloadLink, fileName) {
+  const token = localStorage.getItem("token");
+  const res = await fetch(`${API_BASE}${downloadLink}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) throw new Error("Download failed");
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = fileName;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 // ─── Icons ────────────────────────────────────────────────────────────────────
 const icon =
   (d, size = 14, extra = {}) =>
@@ -922,7 +957,7 @@ const StepConfigure = ({
       >
         {[
           { icon: <GridIcon />, label: "Rows", value: rows.toLocaleString() },
-          { icon: <SparkleIcon />, label: "Model", value: "Random Forest" },
+          { icon: <SparkleIcon />, label: "Model", value: "Multivariate Normal" },
           {
             icon: <ClockIcon />,
             label: "Est. time",
@@ -999,41 +1034,49 @@ const STAGES = [
   { label: "Preparing final file", detail: "Saving with chosen name" },
 ];
 
-const StepProcessing = ({ rows, onDone }) => {
+const StepProcessing = ({ rows, onDone, onError, apiPromise }) => {
   const [stageIdx, setStageIdx] = useState(0);
   const [progress, setProgress] = useState(0);
   const [elapsed, setElapsed] = useState(0);
+  const apiResolved = useRef(false);
+  const apiResultRef = useRef(null);
+  const apiErrorRef = useRef(null);
+  const onDoneRef = useRef(onDone);
+  const onErrorRef = useRef(onError);
+  onDoneRef.current = onDone;
+  onErrorRef.current = onError;
 
   useEffect(() => {
-    let prog = 0,
-      stage = 0;
+    if (apiPromise) {
+      apiPromise
+        .then((result) => { apiResultRef.current = result; apiResolved.current = true; })
+        .catch((err) => { apiErrorRef.current = err; apiResolved.current = true; });
+    }
+    let prog = 0, stage = 0;
     const iv = setInterval(() => {
-      prog += Math.random() * 3.5 + 1;
-      const ns = Math.min(
-        Math.floor(prog / (100 / STAGES.length)),
-        STAGES.length - 1,
-      );
-      if (ns !== stage) {
-        stage = ns;
-        setStageIdx(ns);
+      if (!apiResolved.current) {
+        prog += Math.random() * 1.5 + 0.3;
+        prog = Math.min(prog, 85);
+      } else if (apiErrorRef.current) {
+        clearInterval(iv);
+        onErrorRef.current?.(apiErrorRef.current);
+        return;
+      } else {
+        prog += Math.random() * 6 + 4;
       }
+      const ns = Math.min(Math.floor(prog / (100 / STAGES.length)), STAGES.length - 1);
+      if (ns !== stage) { stage = ns; setStageIdx(ns); }
       if (prog >= 100) {
         clearInterval(iv);
         setProgress(100);
-        setTimeout(
-          () => onDone(parseFloat((88 + Math.random() * 9).toFixed(1))),
-          700,
-        );
+        setTimeout(() => onDoneRef.current(apiResultRef.current), 700);
         return;
       }
       setProgress(Math.min(prog, 100));
     }, 150);
     const timer = setInterval(() => setElapsed((e) => e + 1), 1000);
-    return () => {
-      clearInterval(iv);
-      clearInterval(timer);
-    };
-  }, [onDone]);
+    return () => { clearInterval(iv); clearInterval(timer); };
+  }, [apiPromise]);
 
   const pct = Math.round(progress);
   return (
@@ -1219,9 +1262,10 @@ const StepProcessing = ({ rows, onDone }) => {
 };
 
 // ─── Step 4 — Results ─────────────────────────────────────────────────────────
-const StepResults = ({ file, rows, outputName, score: scoreProp }) => {
+const StepResults = ({ file, rows, outputName, score: scoreProp, apiResult }) => {
+  const m = apiResult?.metrics || {};
   const [score] = useState(
-    () => scoreProp ?? (88 + Math.random() * 9).toFixed(1),
+    () => scoreProp ?? (apiResult?.qualityScore != null ? parseFloat(apiResult.qualityScore).toFixed(1) : (88 + Math.random() * 9).toFixed(1)),
   );
   const [visible, setVisible] = useState(false);
   useEffect(() => {
@@ -1229,29 +1273,30 @@ const StepResults = ({ file, rows, outputName, score: scoreProp }) => {
     return () => clearTimeout(t);
   }, []);
 
+  const actualRows = apiResult?.rowsGenerated || rows;
   const finalFileName =
     outputName ||
-    `synthetic_${file?.name?.replace(/\.csv$/i, "") || "dataset"}_${rows}`;
+    `synthetic_${file?.name?.replace(/\.csv$/i, "") || "dataset"}_${actualRows}`;
   const metrics = [
-    { label: "KS Statistic", value: (0.03 + Math.random() * 0.04).toFixed(3) },
+    { label: "Mean Diff", value: m.mean_diff != null ? m.mean_diff.toFixed(4) : "—" },
     {
-      label: "Mean Deviation",
-      value: `${(0.1 + Math.random() * 0.4).toFixed(2)}%`,
+      label: "Variance Diff",
+      value: m.variance_diff != null ? m.variance_diff.toFixed(4) : "—",
     },
     {
-      label: "Variance Ratio",
-      value: (0.97 + Math.random() * 0.04).toFixed(3),
+      label: "Corr. Diff",
+      value: m.correlation_diff != null ? m.correlation_diff.toFixed(4) : "—",
     },
     {
       label: "Corr. Preserved",
-      value: `${(96 + Math.random() * 3).toFixed(1)}%`,
+      value: m.correlation_diff != null ? `${((1 - m.correlation_diff) * 100).toFixed(1)}%` : "—",
     },
   ];
   const details = [
     { label: "Original file", value: file?.name ?? "dataset.csv" },
     { label: "Output filename", value: `${finalFileName}.csv` },
-    { label: "Rows generated", value: rows.toLocaleString() },
-    { label: "Model", value: "Random Forest Regression" },
+    { label: "Rows generated", value: actualRows.toLocaleString() },
+    { label: "Model", value: "Multivariate Normal" },
   ];
 
   return (
@@ -1476,6 +1521,17 @@ const Modal = ({ onClose, onComplete, seed }) => {
   const [rows, setRows] = useState(seed?.rows ?? 5000);
   const [outputName, setOutputName] = useState(seed?.outputName || "");
   const [resultScore, setResultScore] = useState(null);
+  const [apiPromise, setApiPromise] = useState(null);
+  const [apiResult, setApiResult] = useState(null);
+  const [apiError, setApiError] = useState(null);
+
+  const startGeneration = () => {
+    setApiError(null);
+    setApiResult(null);
+    const promise = callGenerateAPI(file, rows);
+    setApiPromise(promise);
+    setStep(2);
+  };
 
   const finalFileName =
     outputName.trim() ||
@@ -1595,17 +1651,90 @@ const Modal = ({ onClose, onComplete, seed }) => {
               outputName={outputName}
               setOutputName={setOutputName}
               onBack={() => setStep(0)}
-              onGenerate={() => setStep(2)}
+              onGenerate={startGeneration}
             />
           )}
-          {step === 2 && (
+          {step === 2 && !apiError && (
             <StepProcessing
               rows={rows}
-              onDone={(score) => {
-                setResultScore(score);
+              apiPromise={apiPromise}
+              onDone={(result) => {
+                setApiResult(result);
+                setResultScore(
+                  result?.qualityScore != null
+                    ? parseFloat(result.qualityScore).toFixed(1)
+                    : null,
+                );
                 setStep(3);
               }}
+              onError={(err) => setApiError(err.message || "Generation failed")}
             />
+          )}
+          {step === 2 && apiError && (
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                gap: 16,
+                padding: "32px 16px",
+                textAlign: "center",
+              }}
+            >
+              <div
+                style={{
+                  width: 48,
+                  height: 48,
+                  borderRadius: 12,
+                  border: "1px solid rgba(239,68,68,0.25)",
+                  backgroundColor: "rgba(239,68,68,0.12)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: "#ef4444",
+                  fontSize: 22,
+                }}
+              >
+                ✕
+              </div>
+              <div>
+                <p
+                  style={{
+                    fontSize: 15,
+                    fontWeight: 700,
+                    color: "var(--foreground)",
+                    margin: "0 0 6px 0",
+                  }}
+                >
+                  Generation Failed
+                </p>
+                <p
+                  style={{
+                    fontSize: 13,
+                    color: "var(--muted-foreground)",
+                    margin: 0,
+                    lineHeight: 1.5,
+                    maxWidth: 340,
+                  }}
+                >
+                  {apiError}
+                </p>
+              </div>
+              <div style={{ display: "flex", gap: 8 }}>
+                <Btn
+                  className="ghost-btn"
+                  onClick={() => {
+                    setApiError(null);
+                    setStep(1);
+                  }}
+                >
+                  <ArrowLeftIcon /> Back
+                </Btn>
+                <Btn primary onClick={startGeneration}>
+                  <RefreshIcon /> Retry
+                </Btn>
+              </div>
+            </div>
           )}
           {step === 3 && (
             <StepResults
@@ -1613,6 +1742,7 @@ const Modal = ({ onClose, onComplete, seed }) => {
               rows={rows}
               outputName={outputName}
               score={resultScore}
+              apiResult={apiResult}
             />
           )}
         </div>
@@ -1636,21 +1766,31 @@ const Modal = ({ onClose, onComplete, seed }) => {
                 setFile(null);
                 setRows(5000);
                 setOutputName("");
+                setApiResult(null);
+                setApiError(null);
               }}
             >
               New generation
             </Btn>
             <Btn
               primary
-              onClick={() =>
+              onClick={() => {
+                if (apiResult?.downloadLink) {
+                  downloadFile(
+                    apiResult.downloadLink,
+                    finalFileName + ".csv",
+                  );
+                }
                 file &&
-                onComplete?.({
-                  fileName: finalFileName + ".csv",
-                  originalFile: file.name,
-                  rows,
-                  score: resultScore,
-                })
-              }
+                  onComplete?.({
+                    fileName: finalFileName + ".csv",
+                    originalFile: file.name,
+                    rows: apiResult?.rowsGenerated || rows,
+                    score: resultScore,
+                    downloadLink: apiResult?.downloadLink || null,
+                    csvPreview: apiResult?.csvPreview || null,
+                  });
+              }}
               style={{ flex: 1 }}
             >
               <DownloadIcon /> Download &amp; Save
@@ -1905,6 +2045,11 @@ const CSVViewer = ({ dataset, onClose }) => {
           </p>
           <Btn
             primary
+            onClick={() => {
+              if (dataset.downloadLink) {
+                downloadFile(dataset.downloadLink, dataset.fileName);
+              }
+            }}
             style={{ padding: "8px 16px", fontSize: 13, borderRadius: 8 }}
           >
             <DownloadIcon /> Download CSV
@@ -2135,7 +2280,7 @@ export default function Generate() {
   const [deleteTarget, setDeleteTarget] = useState(null); // dataset to delete
 
   const handleComplete = useCallback(
-    ({ fileName, originalFile, rows, score }) => {
+    ({ fileName, originalFile, rows, score, downloadLink, csvPreview }) => {
       setDatasets((prev) => [
         {
           id: Date.now(),
@@ -2143,12 +2288,13 @@ export default function Generate() {
           originalFile,
           rows,
           score,
+          downloadLink: downloadLink || null,
           createdAt: new Date().toLocaleDateString("en-GB", {
             day: "2-digit",
             month: "short",
             year: "numeric",
           }),
-          csvPreview: makeFakeCSV(rows),
+          csvPreview: csvPreview || makeFakeCSV(rows),
         },
         ...prev,
       ]);
